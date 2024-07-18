@@ -1,10 +1,6 @@
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- */
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Toggle } from '@/components/ui/toggle';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { mergeRegister } from '@lexical/utils';
 import {
@@ -12,19 +8,22 @@ import {
   $isRangeSelection,
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
-  FORMAT_ELEMENT_COMMAND,
   FORMAT_TEXT_COMMAND,
   REDO_COMMAND,
   SELECTION_CHANGE_COMMAND,
-  UNDO_COMMAND,
+  UNDO_COMMAND
 } from 'lexical';
+import {
+  Bold,
+  Italic,
+  Redo,
+  Strikethrough,
+  Underline,
+  Undo,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const LowPriority = 1;
-
-function Divider() {
-  return <div className='divider' />;
-}
 
 export default function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -82,101 +81,72 @@ export default function ToolbarPlugin() {
   }, [editor, $updateToolbar]);
 
   return (
-    <div className='toolbar' ref={toolbarRef}>
-      <button
+    <div className='flex gap-1 py-2 px-4 fixed left-1/2 -translate-x-1/2 bottom-4 bg-background rounded-xl shadow-xl text-foreground' ref={toolbarRef}>
+      <Button
+        size='icon'
+        variant={'ghost'}
         disabled={!canUndo}
         onClick={() => {
           editor.dispatchCommand(UNDO_COMMAND, undefined);
         }}
-        className='toolbar-item spaced'
         aria-label='Undo'
       >
-        <i className='format undo' />
-      </button>
-      <button
+        <Undo className='h-4 w-4' />
+      </Button>
+      <Button
+        size='icon'
+        variant={'ghost'}
         disabled={!canRedo}
         onClick={() => {
           editor.dispatchCommand(REDO_COMMAND, undefined);
         }}
-        className='toolbar-item'
         aria-label='Redo'
       >
-        <i className='format redo' />
-      </button>
-      <Divider />
-      <button
-        onClick={() => {
+        <Redo className='h-4 w-4' />
+      </Button>
+      <Separator orientation='vertical' />
+      <Toggle
+        value='bold'
+        pressed={isBold}
+        onPressedChange={() => {
+          setIsBold(!isBold);
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
         }}
-        className={'toolbar-item spaced ' + (isBold ? 'active' : '')}
         aria-label='Format Bold'
       >
-        <i className='format bold' />
-      </button>
-      <button
-        onClick={() => {
+        <Bold className='h-4 w-4' />
+      </Toggle>
+      <Toggle
+        pressed={isItalic}
+        onPressedChange={() => {
+          setIsItalic(!isItalic);
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
         }}
-        className={'toolbar-item spaced ' + (isItalic ? 'active' : '')}
         aria-label='Format Italics'
       >
-        <i className='format italic' />
-      </button>
-      <button
-        onClick={() => {
+        <Italic className='h-4 w-4' />
+      </Toggle>
+      <Toggle
+        pressed={isUnderline}
+        onPressedChange={() => {
+          setIsUnderline(!isUnderline);
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
         }}
-        className={'toolbar-item spaced ' + (isUnderline ? 'active' : '')}
         aria-label='Format Underline'
       >
-        <i className='format underline' />
-      </button>
-      <button
-        onClick={() => {
+        <Underline className='h-4 w-4' />
+      </Toggle>
+      <Toggle
+        pressed={isStrikethrough}
+        onPressedChange={() => {
+          setIsStrikethrough(!isStrikethrough);
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
         }}
-        className={'toolbar-item spaced ' + (isStrikethrough ? 'active' : '')}
         aria-label='Format Strikethrough'
       >
-        <i className='format strikethrough' />
-      </button>
-      <Divider />
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'left');
-        }}
-        className='toolbar-item spaced'
-        aria-label='Left Align'
-      >
-        <i className='format left-align' />
-      </button>
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'center');
-        }}
-        className='toolbar-item spaced'
-        aria-label='Center Align'
-      >
-        <i className='format center-align' />
-      </button>
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'right');
-        }}
-        className='toolbar-item spaced'
-        aria-label='Right Align'
-      >
-        <i className='format right-align' />
-      </button>
-      <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'justify');
-        }}
-        className='toolbar-item'
-        aria-label='Justify Align'
-      >
-        <i className='format justify-align' />
-      </button>{' '}
+        <Strikethrough className='h-4 w-4' />
+      </Toggle>
+      <Separator orientation='vertical' />
     </div>
   );
 }

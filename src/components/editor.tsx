@@ -1,31 +1,36 @@
+import { CodeNode } from '@lexical/code';
+import { LinkNode } from '@lexical/link';
+import { ListItemNode, ListNode } from '@lexical/list';
+import { TRANSFORMERS } from '@lexical/markdown';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
+import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-
+import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
 import TreeViewPlugin from './plugins/TreeViewPlugin.tsx';
 
-const placeholder = 'Enter some rich text...';
+const placeholder = 'Start typing...';
 
 const editorConfig = {
-  namespace: 'React.js Demo',
-  nodes: [],
+  namespace: 'Main Editor',
+  nodes: [HeadingNode, QuoteNode, CodeNode, ListItemNode, ListNode, LinkNode],
   // Handling of errors during update
   onError(error: Error) {
     throw error;
   },
   // The editor theme
   theme: {
-    code: 'editor-code',
+    code: 'font-mono',
     heading: {
-      h1: 'editor-heading-h1',
-      h2: 'editor-heading-h2',
-      h3: 'editor-heading-h3',
-      h4: 'editor-heading-h4',
-      h5: 'editor-heading-h5',
+      h1: 'scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mt-6',
+      h2: 'scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight mt-6',
+      h3: 'scroll-m-20 text-2xl font-semibold tracking-tight mt-6',
+      h4: 'scroll-m-20 text-xl font-semibold tracking-tight mt-6',
+      h5: 'scroll-m-20 text-lg font-semibold tracking-tight mt-6',
     },
     image: 'editor-image',
     link: 'editor-link',
@@ -34,23 +39,23 @@ const editorConfig = {
       nested: {
         listitem: 'editor-nested-listitem',
       },
-      ol: 'editor-list-ol',
-      ul: 'editor-list-ul',
+      ol: 'my-6 ml-6 list-disc [&>li]:mt-2',
+      ul: 'my-6 ml-6 list-disc [&>li]:mt-2',
     },
     ltr: 'ltr',
-    paragraph: 'editor-paragraph',
-    placeholder: 'editor-placeholder',
-    quote: 'editor-quote',
+    paragraph: 'leading-7 [&:not(:first-child)]:mt-2',
+    placeholder: 'text-muted',
+    quote: 'mt-6 border-l-2 pl-6 italic',
     rtl: 'rtl',
     text: {
-      bold: 'editor-text-bold',
-      code: 'editor-text-code',
+      bold: 'font-bold',
+      code: 'relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold',
       hashtag: 'editor-text-hashtag',
-      italic: 'editor-text-italic',
+      italic: 'italic',
       overflowed: 'editor-text-overflowed',
-      strikethrough: 'editor-text-strikethrough',
-      underline: 'editor-text-underline',
-      underlineStrikethrough: 'editor-text-underlineStrikethrough',
+      strikethrough: 'line-through',
+      underline: 'underline',
+      underlineStrikethrough: 'underline line-through',
     },
   },
 };
@@ -58,21 +63,16 @@ const editorConfig = {
 export default function Editor() {
   return (
     <LexicalComposer initialConfig={editorConfig}>
-      <div className='editor-container'>
+      <div className='max-w-3xl'>
         <ToolbarPlugin />
-        <div className='editor-inner'>
+        <div className=''>
           <RichTextPlugin
-            placeholder={
-              <div className='editor-placeholder'>{placeholder}</div>
-            }
+            placeholder={<div className='text-muted'>{placeholder}</div>}
             contentEditable={
               <ContentEditable
-                className='editor-input'
+                className='h-full text-foreground p-4 focus:outline-none'
                 aria-placeholder={placeholder}
-                placeholder={
-                  //   <div className='editor-placeholder'>{placeholder}</div>
-                  placeholder
-                }
+                placeholder={placeholder}
               />
             }
             ErrorBoundary={LexicalErrorBoundary}
@@ -80,6 +80,7 @@ export default function Editor() {
           <HistoryPlugin />
           <AutoFocusPlugin />
           <TreeViewPlugin />
+          <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
         </div>
       </div>
     </LexicalComposer>

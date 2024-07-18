@@ -3,7 +3,7 @@ import Editor from './components/editor';
 function App() {
   return (
     <>
-      <div className='dark'>
+      <div className='w-full flex justify-center items-center bg-background dark'>
         <Editor />
       </div>
     </>
