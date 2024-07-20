@@ -1,15 +1,17 @@
 import { CodeNode } from '@lexical/code';
 import { LinkNode } from '@lexical/link';
 import { ListItemNode, ListNode } from '@lexical/list';
-import { TRANSFORMERS } from '@lexical/markdown';
+import { $convertFromMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
+import { useEffect } from 'react';
 import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
 import TreeViewPlugin from './plugins/TreeViewPlugin.tsx';
 
@@ -44,7 +46,7 @@ const editorConfig = {
     },
     ltr: 'ltr',
     paragraph: 'leading-7 [&:not(:first-child)]:mt-2',
-    placeholder: 'text-muted',
+    // placeholder: 'text-muted',
     quote: 'mt-6 border-l-2 pl-6 italic',
     rtl: 'rtl',
     text: {
@@ -60,17 +62,39 @@ const editorConfig = {
   },
 };
 
-export default function Editor() {
+type EditorProps = {
+  markdown?: string;
+};
+
+function UpdateMarkdownPlugin({ markdown = '' }: { markdown?: string }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    editor.update(() => {
+      $convertFromMarkdownString(markdown, TRANSFORMERS);
+    });
+  }, [markdown, editor]);
+
+  return null;
+}
+
+export default function Editor({ markdown = '' }: EditorProps) {
   return (
-    <LexicalComposer initialConfig={editorConfig}>
-      <div className='max-w-3xl'>
+    <LexicalComposer
+      initialConfig={{
+        ...editorConfig,
+        editorState: () => $convertFromMarkdownString(markdown, TRANSFORMERS),
+      }}
+    >
+      <div className='max-w-2xl w-full'>
         <ToolbarPlugin />
+        <UpdateMarkdownPlugin markdown={markdown} />
         <div className=''>
           <RichTextPlugin
-            placeholder={<div className='text-muted'>{placeholder}</div>}
+            placeholder={<div className='text-muted pl-4'>{placeholder}</div>}
             contentEditable={
               <ContentEditable
-                className='h-full text-foreground p-4 focus:outline-none'
+                className='h-full text-foreground p-4 focus:outline-none z-10'
                 aria-placeholder={placeholder}
                 placeholder={placeholder}
               />
