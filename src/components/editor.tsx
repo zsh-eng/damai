@@ -1,7 +1,11 @@
 import { CodeNode } from '@lexical/code';
 import { LinkNode } from '@lexical/link';
 import { ListItemNode, ListNode } from '@lexical/list';
-import { $convertFromMarkdownString, TRANSFORMERS } from '@lexical/markdown';
+import {
+  $convertFromMarkdownString,
+  $convertToMarkdownString,
+  TRANSFORMERS,
+} from '@lexical/markdown';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -14,6 +18,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { useEffect } from 'react';
 import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
 import TreeViewPlugin from './plugins/TreeViewPlugin.tsx';
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 
 const placeholder = 'Start typing...';
 
@@ -64,6 +69,7 @@ const editorConfig = {
 
 type EditorProps = {
   markdown?: string;
+  onSave?: (markdown: string) => void;
 };
 
 function UpdateMarkdownPlugin({ markdown = '' }: { markdown?: string }) {
@@ -78,7 +84,7 @@ function UpdateMarkdownPlugin({ markdown = '' }: { markdown?: string }) {
   return null;
 }
 
-export default function Editor({ markdown = '' }: EditorProps) {
+export default function Editor({ markdown = '', onSave }: EditorProps) {
   return (
     <LexicalComposer
       initialConfig={{
@@ -105,6 +111,15 @@ export default function Editor({ markdown = '' }: EditorProps) {
           <AutoFocusPlugin />
           <TreeViewPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+          <OnChangePlugin
+            ignoreSelectionChange={true}
+            onChange={(editorState) => {
+              editorState.read(() => {
+                const markdown = $convertToMarkdownString(TRANSFORMERS);
+                onSave?.(markdown);
+              });
+            }}
+          />
         </div>
       </div>
     </LexicalComposer>
