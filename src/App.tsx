@@ -1,8 +1,9 @@
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import Editor from './components/editor';
+import CommandPalette from '@/components/command-palette';
 
-type File = {
+export type File = {
   id: number;
   filename: string;
   content: string;
@@ -140,6 +141,10 @@ function App() {
         onSelect={(file) => setSelectedFileId(file.id)}
       />
       <div className='flex flex-col w-full justify-center items-center pt-8'>
+        <CommandPalette
+          files={files}
+          onSelectFile={(file) => setSelectedFileId(file.id)}
+        />
         <div className='w-[42rem]'>
           <input
             type='text'
