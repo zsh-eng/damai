@@ -52,7 +52,8 @@ function FileTree({
 
 function App() {
   const [files, setFiles] = useState<File[]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFileId, setSelectedFileId] = useState<number>(-1);
+  const selectedFile = files.find((file) => file.id === selectedFileId) ?? null;
   const markdown = selectedFile?.content || '';
 
   const updateFile = async (id: number, content: string) => {
@@ -81,7 +82,7 @@ function App() {
     console.log('File updated');
   };
 
-  const onSave = debounce((markdown: string) => {
+  const onSaveContent = debounce((markdown: string) => {
     const file = selectedFile;
     if (!file) {
       console.log('No file selected');
@@ -94,13 +95,39 @@ function App() {
     updateFile(file.id, markdown);
   }, 1000);
 
+  const onUpdateFilename = debounce(async (id: number, filename: string) => {
+    const response = await fetch(
+      `${import.meta.env.VITE_SERVER_URL}/files/${id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ filename }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Failed to update file');
+      return;
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      console.error('Failed to update file');
+      return;
+    }
+
+    console.log('Filename updated');
+  }, 1000);
+
   useEffect(() => {
     const fetchFiles = async () => {
       const url = `${import.meta.env.VITE_SERVER_URL}/files`;
       const response = await fetch(url);
       const data = await response.json();
       setFiles(data);
-      setSelectedFile(data?.[0] ?? null);
+      setSelectedFileId(data[0]?.id ?? -1);
     };
     fetchFiles();
   }, [setFiles]);
@@ -110,10 +137,38 @@ function App() {
       <FileTree
         files={files}
         selectedId={selectedFile?.id ?? -1}
-        onSelect={(file) => setSelectedFile(file)}
+        onSelect={(file) => setSelectedFileId(file.id)}
       />
-      <div className='w-full flex justify-center items-center pt-12'>
-        <Editor markdown={markdown} onSave={onSave} />
+      <div className='flex flex-col w-full justify-center items-center pt-8'>
+        <div className='w-[42rem]'>
+          <input
+            type='text'
+            value={selectedFile?.filename}
+            className='text-muted focus:text-primary bg-background text-5xl w-full ml-2 px-2 py-2'
+            onChange={(e) => {
+              if (!selectedFile) return;
+
+              const newFilename = e.target.value;
+              const currentFilename = selectedFile.filename;
+              if (newFilename === currentFilename) {
+                return;
+              }
+
+              setFiles((prevFiles) =>
+                prevFiles.map((file) =>
+                  file.id === selectedFile.id
+                    ? { ...selectedFile, filename: newFilename }
+                    : file
+                )
+              );
+
+              onUpdateFilename(selectedFile.id, newFilename);
+            }}
+          />
+        </div>
+        <div className='w-full flex justify-center items-center'>
+          <Editor markdown={markdown} onSave={onSaveContent} />
+        </div>
       </div>
     </div>
   );
