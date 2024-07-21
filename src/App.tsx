@@ -122,6 +122,50 @@ function App() {
     console.log('Filename updated');
   }, 1000);
 
+  const createFile = async (filename: string) => {
+    const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ filename }),
+    });
+
+    const data = await response.json();
+    if (!data.success) {
+      console.error('Failed to create file');
+      return;
+    }
+
+    const file: File = data.file;
+    setFiles((prevFiles) => [...prevFiles, file]);
+    setSelectedFileId(file.id);
+
+    console.log('File created');
+  };
+
+  const deleteFile = async (fileId: number) => {
+    const nextFiles = files.filter((file) => file.id !== fileId);
+    const nextSelectedFileId = nextFiles[0]?.id ?? -1;
+    setFiles(nextFiles);
+    setSelectedFileId(nextSelectedFileId);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SERVER_URL}/files/${fileId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+
+    const data = await response.json();
+    if (!data.success) {
+      console.error('Failed to delete file');
+      return;
+    }
+
+    console.log('File deleted');
+  };
+
   useEffect(() => {
     const fetchFiles = async () => {
       const url = `${import.meta.env.VITE_SERVER_URL}/files`;
@@ -144,7 +188,14 @@ function App() {
         <CommandPalette
           files={files}
           onSelectFile={(file) => setSelectedFileId(file.id)}
+          onCreateFile={() => {
+            createFile('New File');
+          }}
+          onDeleteFile={() => {
+            deleteFile(selectedFileId);
+          }}
         />
+
         <div className='w-[42rem]'>
           <input
             type='text'
