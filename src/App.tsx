@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import Editor from './components/editor';
 
@@ -20,9 +21,40 @@ function debounce<T extends (...args: never[]) => unknown>(
   };
 }
 
+function FileTree({
+  files,
+  selectedId = -1,
+  onSelect,
+}: {
+  files: File[];
+  selectedId?: number;
+  onSelect?: (file: File) => void;
+}) {
+  return (
+    <div className='bg-secondary py-6 pr-4 w-[20rem] rounded-r-md flex flex-col gap-2 h-full'>
+      {files.map((file) => {
+        return (
+          <div
+            key={file.id}
+            className={cn(
+              'text-muted-foreground hover:text-primary pl-4 py-2 hover:bg-background rounded-r-md',
+              selectedId === file.id && 'bg-background'
+            )}
+            onClick={() => onSelect && onSelect(file)}
+          >
+            {file.filename}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function App() {
   const [files, setFiles] = useState<File[]>([]);
-  const markdown = files.length > 0 ? files[0]?.content : '# Hello world!';
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const markdown = selectedFile?.content || '';
+
   const updateFile = async (id: number, content: string) => {
     const response = await fetch(
       `${import.meta.env.VITE_SERVER_URL}/files/${id}`,
@@ -50,7 +82,16 @@ function App() {
   };
 
   const onSave = debounce((markdown: string) => {
-    updateFile(1, markdown);
+    const file = selectedFile;
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+
+    setFiles((files) =>
+      files.map((f) => (f.id === file.id ? { ...f, content: markdown } : f))
+    );
+    updateFile(file.id, markdown);
   }, 1000);
 
   useEffect(() => {
@@ -59,16 +100,22 @@ function App() {
       const response = await fetch(url);
       const data = await response.json();
       setFiles(data);
+      setSelectedFile(data?.[0] ?? null);
     };
     fetchFiles();
   }, [setFiles]);
 
   return (
-    <>
-      <div className='w-full flex justify-center items-center'>
+    <div className='flex h-screen items-start dark'>
+      <FileTree
+        files={files}
+        selectedId={selectedFile?.id ?? -1}
+        onSelect={(file) => setSelectedFile(file)}
+      />
+      <div className='w-full flex justify-center items-center pt-12'>
         <Editor markdown={markdown} onSave={onSave} />
       </div>
-    </>
+    </div>
   );
 }
 

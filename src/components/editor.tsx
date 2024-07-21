@@ -109,7 +109,7 @@ export default function Editor({ markdown = '', onSave }: EditorProps) {
           />
           <HistoryPlugin />
           <AutoFocusPlugin />
-          <TreeViewPlugin />
+          {/* <TreeViewPlugin /> */}
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin
             ignoreSelectionChange={true}
