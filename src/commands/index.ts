@@ -32,6 +32,9 @@ const VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND = createDamaiCommand<never>(
   "view:toggle-secondary-sidebar",
 );
 
+const VIEW_FOCUS_SEARCH_COMMAND =
+  createDamaiCommand<never>("view:focus-search");
+
 const FILE_SELECT_COMMAND = createDamaiCommand<{ id: number }>("file:select");
 const FILE_SAVE_COMMAND = createDamaiCommand<{ id: number; content: string }>(
   "file:save",
@@ -48,6 +51,7 @@ const FILE_CREATE_COMMAND = createDamaiCommand<{ filename: string }>(
 export const DAMAI_COMMANDS = {
   VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND,
   VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND,
+  VIEW_FOCUS_SEARCH_COMMAND,
   FILE_SELECT_COMMAND,
   FILE_SAVE_COMMAND,
   FILE_RENAME_COMMAND,

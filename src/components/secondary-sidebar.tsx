@@ -6,7 +6,7 @@ import {
 import { useSearchFile } from "@/hooks/use-file";
 import { cn } from "@/lib/utils";
 import { Loader2, PanelLeft, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ElementRef, useEffect, useRef, useState } from "react";
 import { useDebounce } from "@uidotdev/usehooks";
 
 export default function SecondarySidebar() {
@@ -15,6 +15,7 @@ export default function SecondarySidebar() {
   const debouncedSearchQuery = useDebounce(searchQuery, 200);
   const { data: searchResults = [], isLoading: isSearching } =
     useSearchFile(debouncedSearchQuery);
+  const inputRef = useRef<ElementRef<"input">>(null);
 
   // We should mark the search as pending if the search query has changed but the
   // debounce hasn't triggered yet, or if the search is still in progress.
@@ -48,6 +49,34 @@ export default function SecondarySidebar() {
     };
   }, []);
 
+  useEffect(() => {
+    const keyDown = (e: KeyboardEvent) => {
+      // We can't use the `key` property because it's registered as a special
+      // character when the alt key is pressed.
+      if (e.code === "KeyF" && e.metaKey && e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        dispatchDamaiCommand(DAMAI_COMMANDS.VIEW_FOCUS_SEARCH_COMMAND);
+      }
+    };
+
+    document.addEventListener("keydown", keyDown);
+    return () => {
+      document.removeEventListener("keydown", keyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    return registerDamaiCommandListener(
+      DAMAI_COMMANDS.VIEW_FOCUS_SEARCH_COMMAND,
+      () => {
+        if (!hidden) {
+          inputRef.current?.focus();
+        }
+      },
+    );
+  }, [hidden]);
+
   return (
     <>
       <PanelLeft
@@ -68,6 +97,7 @@ export default function SecondarySidebar() {
             className="bg-transparent outline-none"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            ref={inputRef}
           />
           {pendingSearch && (
             <Loader2 className="ml-auto h-5 w-5 animate-spin text-muted-foreground" />
