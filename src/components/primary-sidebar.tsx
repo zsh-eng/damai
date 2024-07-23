@@ -1,9 +1,6 @@
+import { DAMAI_COMMANDS, registerDamaiCommandListener } from "@/commands";
+import useDamaiCommandShortcut from "@/components/use-shortcut";
 import { type File } from "@/hooks/use-file";
-import {
-  DAMAI_COMMANDS,
-  dispatchDamaiCommand,
-  registerDamaiCommandListener,
-} from "@/commands";
 import { cn } from "@/lib/utils";
 import { PanelRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -26,26 +23,7 @@ export default function PrimarySidebar({
     );
   }, [setHidden, hidden]);
 
-  useEffect(() => {
-    const keyDown = (e: KeyboardEvent) => {
-      // We can't use the `key` property because it's registered as a special
-      // character when the alt key is pressed.
-      if (e.code === "KeyB" && e.altKey && !e.shiftKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        dispatchDamaiCommand(
-          DAMAI_COMMANDS.VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND,
-        );
-        console.log("pressed");
-      }
-    };
-
-    document.addEventListener("keydown", keyDown);
-    return () => {
-      document.removeEventListener("keydown", keyDown);
-    };
-  }, []);
-
+  useDamaiCommandShortcut(DAMAI_COMMANDS.VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND);
   return (
     <>
       <PanelRight

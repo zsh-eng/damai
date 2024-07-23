@@ -1,6 +1,7 @@
 // With reference to https://github.com/facebook/lexical/blob/main/packages/lexical/src/LexicalCommands.ts
-type DamaiCommand<_TPayload = never> = {
+export type DamaiCommand<_TPayload = never> = {
   type: string;
+  shortcut?: DamaiShortcut;
 };
 
 type DamaiCommandPayload<TCommand extends DamaiCommand<unknown>> =
@@ -18,22 +19,62 @@ type DamaiCommandListenerMap = Map<
   Set<DamaiCommandListener<DamaiCommand<never>>>
 >;
 
+type DamaiShortcut = {
+  /** Represents the human-readable key name for the shortcut. */
+  key: string;
+  /**
+   * Represents the keycode for a shortcut.
+   *
+   * The keycode is useful for handling keyboard inputs on MacOS, as keys
+   * like `Option+B` are registered as `KeyB` with the `altKey` property set
+   * but the `key` property set to `Dead`.
+   */
+  keyCode: string;
+  metaKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+};
+
 const createDamaiCommand = <TPayload>(
   type: string,
+  shortcut?: DamaiShortcut,
 ): DamaiCommand<TPayload> => ({
   type,
+  shortcut,
 });
 
 const VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND = createDamaiCommand<never>(
   "view:toggle-primary-sidebar",
+  {
+    key: "B",
+    keyCode: "KeyB",
+    metaKey: false,
+    altKey: true,
+    shiftKey: false,
+  },
 );
 
 const VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND = createDamaiCommand<never>(
   "view:toggle-secondary-sidebar",
+  {
+    key: "B",
+    keyCode: "KeyB",
+    metaKey: false,
+    altKey: true,
+    shiftKey: true,
+  },
 );
 
-const VIEW_FOCUS_SEARCH_COMMAND =
-  createDamaiCommand<never>("view:focus-search");
+const VIEW_FOCUS_SEARCH_COMMAND = createDamaiCommand<never>(
+  "view:focus-search",
+  {
+    key: "F",
+    keyCode: "KeyF",
+    metaKey: true,
+    altKey: false,
+    shiftKey: true,
+  },
+);
 
 const FILE_SELECT_COMMAND = createDamaiCommand<{ id: number }>("file:select");
 const FILE_SAVE_COMMAND = createDamaiCommand<{ id: number; content: string }>(

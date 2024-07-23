@@ -3,11 +3,12 @@ import {
   dispatchDamaiCommand,
   registerDamaiCommandListener,
 } from "@/commands";
+import useDamaiCommandShortcut from "@/components/use-shortcut";
 import { useSearchFile } from "@/hooks/use-file";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@uidotdev/usehooks";
 import { Loader2, PanelLeft, Search } from "lucide-react";
 import { ElementRef, useEffect, useRef, useState } from "react";
-import { useDebounce } from "@uidotdev/usehooks";
 
 export default function SecondarySidebar() {
   const [hidden, setHidden] = useState(false);
@@ -23,6 +24,7 @@ export default function SecondarySidebar() {
   const pendingSearch =
     (debouncedSearchQuery !== searchQuery && searchQuery !== "") || isSearching;
 
+  useDamaiCommandShortcut(DAMAI_COMMANDS.VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND);
   useEffect(() => {
     return registerDamaiCommandListener(
       DAMAI_COMMANDS.VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND,
@@ -30,42 +32,7 @@ export default function SecondarySidebar() {
     );
   }, [setHidden, hidden]);
 
-  useEffect(() => {
-    const keyDown = (e: KeyboardEvent) => {
-      // We can't use the `key` property because it's registered as a special
-      // character when the alt key is pressed.
-      if (e.code === "KeyB" && e.altKey && e.shiftKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        dispatchDamaiCommand(
-          DAMAI_COMMANDS.VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND,
-        );
-      }
-    };
-
-    document.addEventListener("keydown", keyDown);
-    return () => {
-      document.removeEventListener("keydown", keyDown);
-    };
-  }, []);
-
-  useEffect(() => {
-    const keyDown = (e: KeyboardEvent) => {
-      // We can't use the `key` property because it's registered as a special
-      // character when the alt key is pressed.
-      if (e.code === "KeyF" && e.metaKey && e.shiftKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        dispatchDamaiCommand(DAMAI_COMMANDS.VIEW_FOCUS_SEARCH_COMMAND);
-      }
-    };
-
-    document.addEventListener("keydown", keyDown);
-    return () => {
-      document.removeEventListener("keydown", keyDown);
-    };
-  }, []);
-
+  useDamaiCommandShortcut(DAMAI_COMMANDS.VIEW_FOCUS_SEARCH_COMMAND);
   useEffect(() => {
     return registerDamaiCommandListener(
       DAMAI_COMMANDS.VIEW_FOCUS_SEARCH_COMMAND,
