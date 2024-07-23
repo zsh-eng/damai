@@ -131,3 +131,37 @@ export function useDeleteFile() {
     },
   });
 }
+
+export function useSearchFile(searchString: string) {
+  return useQuery({
+    queryKey: ["files", "search", searchString],
+    queryFn: async () => {
+      if (!searchString) {
+        return [];
+      }
+
+      const searchParams = new URLSearchParams();
+      searchParams.set("q", searchString);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/search?${searchParams.toString()}`,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch search");
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error("Failed to fetch search");
+      }
+
+      return data.files as {
+        id: number;
+        filename: string;
+        rank: number;
+        headline: string;
+      }[];
+    },
+  });
+}

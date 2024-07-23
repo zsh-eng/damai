@@ -62,7 +62,7 @@ function App() {
         }
       },
     );
-  }, []);
+  }, [files]);
 
   useEffect(() => {
     return registerDamaiCommandListener(
