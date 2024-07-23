@@ -2,6 +2,7 @@ import CommandPalette from "@/components/command-palette";
 import PrimarySidebar from "@/components/primary-sidebar";
 import { useEffect, useState } from "react";
 import Editor from "./components/editor";
+import SecondarySidebar from "@/components/secondary-sidebar";
 
 export type File = {
   id: number;
@@ -203,6 +204,8 @@ function App() {
           />
         </div>
       </div>
+
+      <SecondarySidebar />
     </div>
   );
 }

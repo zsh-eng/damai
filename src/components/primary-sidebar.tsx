@@ -18,7 +18,7 @@ export default function PrimarySidebar({
     const keyDown = (e: KeyboardEvent) => {
       // We can't use the `key` property because it's registered as a special
       // character when the alt key is pressed.
-      if (e.code === "KeyB" && e.altKey) {
+      if (e.code === "KeyB" && e.altKey && !e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
         setHidden((hidden) => !hidden);
@@ -40,7 +40,7 @@ export default function PrimarySidebar({
       />
       <div
         className={cn(
-          "-ml-2 flex h-full w-[20rem] flex-col gap-2 rounded-r-md bg-secondary pr-4 pt-14 transition duration-200",
+          "-ml-2 flex h-full w-60 min-w-60 flex-col gap-2 rounded-r-md bg-secondary pr-4 pt-14 transition duration-200",
           hidden && "absolute m-0 -translate-x-[20rem]",
         )}
       >
