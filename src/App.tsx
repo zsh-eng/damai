@@ -10,14 +10,16 @@ import {
   useUpdateFile,
 } from "@/hooks/use-file";
 import _ from "lodash";
-import { useCallback, useEffect, useState } from "react";
+import { ElementRef, useCallback, useEffect, useRef, useState } from "react";
 import Editor from "./components/editor";
+import useDamaiCommandShortcut from "@/components/use-shortcut";
 
 function App() {
   const { data: initialFiles = [], isLoading: isFilesLoading } = useFiles();
   const { mutate: mutateFile, variables, isPending } = useUpdateFile();
   const { mutateAsync: createFile } = useCreateFile();
   const { mutateAsync: deleteFile } = useDeleteFile();
+  const filenameRef = useRef<ElementRef<"input">>(null);
 
   const files = isPending
     ? initialFiles.map((file) =>
@@ -95,7 +97,19 @@ function App() {
         await deleteFile({ id });
       },
     );
-  });
+  }, []);
+
+  useDamaiCommandShortcut(DAMAI_COMMANDS.VIEW_FOCUS_FILENAME_COMMAND);
+  useEffect(() => {
+    return registerDamaiCommandListener(
+      DAMAI_COMMANDS.VIEW_FOCUS_FILENAME_COMMAND,
+      () => {
+        if (selectedFile && filenameRef.current) {
+          filenameRef.current.focus();
+        }
+      },
+    );
+  }, [selectedFile]);
 
   useEffect(() => {
     if (!isFilesLoading && !selectedFile && files.length > 0) {
@@ -116,6 +130,7 @@ function App() {
 
         <div className="w-[42rem]">
           <input
+            ref={filenameRef}
             type="text"
             value={selectedFile?.filename}
             className="ml-2 w-full bg-background px-2 py-2 text-5xl text-muted focus:text-primary focus:outline-none"

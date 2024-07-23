@@ -76,6 +76,28 @@ const VIEW_FOCUS_SEARCH_COMMAND = createDamaiCommand<never>(
   },
 );
 
+const VIEW_FOCUS_FILENAME_COMMAND = createDamaiCommand<never>(
+  "view:focus-filename",
+  {
+    key: "F",
+    keyCode: "KeyF",
+    metaKey: false,
+    altKey: true,
+    shiftKey: false,
+  },
+);
+
+const VIEW_FOCUS_EDITOR_COMMAND = createDamaiCommand<never>(
+  "view:focus-editor",
+  {
+    key: "E",
+    keyCode: "KeyE",
+    metaKey: false,
+    altKey: true,
+    shiftKey: false,
+  },
+);
+
 const FILE_SELECT_COMMAND = createDamaiCommand<{ id: number }>("file:select");
 const FILE_SAVE_COMMAND = createDamaiCommand<{ id: number; content: string }>(
   "file:save",
@@ -103,9 +125,13 @@ const FILE_CREATE_COMMAND = createDamaiCommand<{ filename: string }>(
 );
 
 export const DAMAI_COMMANDS = {
+  // View commands
   VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND,
   VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND,
   VIEW_FOCUS_SEARCH_COMMAND,
+  VIEW_FOCUS_FILENAME_COMMAND,
+  VIEW_FOCUS_EDITOR_COMMAND,
+  // File commands
   FILE_SELECT_COMMAND,
   FILE_SAVE_COMMAND,
   FILE_RENAME_COMMAND,

@@ -18,8 +18,13 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { useEffect, useState } from "react";
 import ToolbarPlugin from "./plugins/ToolbarPlugin.tsx";
-import { DAMAI_COMMANDS, dispatchDamaiCommand } from "@/commands/index.ts";
+import {
+  DAMAI_COMMANDS,
+  dispatchDamaiCommand,
+  registerDamaiCommandListener,
+} from "@/commands/index.ts";
 import { type File } from "@/hooks/use-file.ts";
+import useDamaiCommandShortcut from "@/components/use-shortcut.tsx";
 
 const placeholder = "Start typing...";
 
@@ -85,6 +90,22 @@ function UpdateMarkdownPlugin({ markdown = "" }: { markdown?: string }) {
   return null;
 }
 
+function FocusPlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useDamaiCommandShortcut(DAMAI_COMMANDS.VIEW_FOCUS_EDITOR_COMMAND);
+
+  useEffect(() => {
+    return registerDamaiCommandListener(
+      DAMAI_COMMANDS.VIEW_FOCUS_EDITOR_COMMAND,
+      () => {
+        editor.focus();
+      },
+    );
+  }, [editor]);
+  return null;
+}
+
 export default function Editor({
   markdown: initialMarkdown = "",
   currentFile,
@@ -101,6 +122,7 @@ export default function Editor({
       <div className="w-full max-w-2xl">
         <ToolbarPlugin />
         <UpdateMarkdownPlugin markdown={markdown} />
+        <FocusPlugin />
         <div className="h-full">
           <RichTextPlugin
             placeholder={<div className="pl-4 text-muted">{placeholder}</div>}
