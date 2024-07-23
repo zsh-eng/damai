@@ -1,7 +1,7 @@
-import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
-import Editor from './components/editor';
-import CommandPalette from '@/components/command-palette';
+import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import Editor from "./components/editor";
+import CommandPalette from "@/components/command-palette";
 
 export type File = {
   id: number;
@@ -13,7 +13,7 @@ export type File = {
 
 function debounce<T extends (...args: never[]) => unknown>(
   fn: T,
-  timeoutMs = 300
+  timeoutMs = 300,
 ) {
   let timeoutId: ReturnType<typeof setTimeout>;
   return function (...args: Parameters<T>) {
@@ -32,14 +32,14 @@ function FileTree({
   onSelect?: (file: File) => void;
 }) {
   return (
-    <div className='bg-secondary py-6 pr-4 w-[20rem] rounded-r-md flex flex-col gap-2 h-full'>
+    <div className="-ml-2 flex h-full w-[20rem] flex-col gap-2 rounded-r-md bg-secondary py-6 pr-4">
       {files.map((file) => {
         return (
           <div
             key={file.id}
             className={cn(
-              'text-muted-foreground hover:text-primary pl-4 py-2 hover:bg-background rounded-r-md',
-              selectedId === file.id && 'bg-background'
+              "rounded-r-md py-2 pl-4 text-muted-foreground hover:bg-background hover:text-primary",
+              selectedId === file.id && "bg-background",
             )}
             onClick={() => onSelect && onSelect(file)}
           >
@@ -55,43 +55,43 @@ function App() {
   const [files, setFiles] = useState<File[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<number>(-1);
   const selectedFile = files.find((file) => file.id === selectedFileId) ?? null;
-  const markdown = selectedFile?.content || '';
+  const markdown = selectedFile?.content || "";
 
   const updateFile = async (id: number, content: string) => {
     const response = await fetch(
       `${import.meta.env.VITE_SERVER_URL}/files/${id}`,
       {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ content }),
-      }
+      },
     );
 
     if (!response.ok) {
-      console.error('Failed to update file');
+      console.error("Failed to update file");
       return;
     }
 
     const data = await response.json();
     if (!data.success) {
-      console.error('Failed to update file');
+      console.error("Failed to update file");
       return;
     }
 
-    console.log('File updated');
+    console.log("File updated");
   };
 
   const onSaveContent = debounce((markdown: string) => {
     const file = selectedFile;
     if (!file) {
-      console.log('No file selected');
+      console.log("No file selected");
       return;
     }
 
     setFiles((files) =>
-      files.map((f) => (f.id === file.id ? { ...f, content: markdown } : f))
+      files.map((f) => (f.id === file.id ? { ...f, content: markdown } : f)),
     );
     updateFile(file.id, markdown);
   }, 1000);
@@ -100,40 +100,40 @@ function App() {
     const response = await fetch(
       `${import.meta.env.VITE_SERVER_URL}/files/${id}`,
       {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ filename }),
-      }
+      },
     );
 
     if (!response.ok) {
-      console.error('Failed to update file');
+      console.error("Failed to update file");
       return;
     }
 
     const data = await response.json();
     if (!data.success) {
-      console.error('Failed to update file');
+      console.error("Failed to update file");
       return;
     }
 
-    console.log('Filename updated');
+    console.log("Filename updated");
   }, 1000);
 
   const createFile = async (filename: string) => {
     const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/files`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ filename }),
     });
 
     const data = await response.json();
     if (!data.success) {
-      console.error('Failed to create file');
+      console.error("Failed to create file");
       return;
     }
 
@@ -141,7 +141,7 @@ function App() {
     setFiles((prevFiles) => [...prevFiles, file]);
     setSelectedFileId(file.id);
 
-    console.log('File created');
+    console.log("File created");
   };
 
   const deleteFile = async (fileId: number) => {
@@ -153,17 +153,17 @@ function App() {
     const response = await fetch(
       `${import.meta.env.VITE_SERVER_URL}/files/${fileId}`,
       {
-        method: 'DELETE',
-      }
+        method: "DELETE",
+      },
     );
 
     const data = await response.json();
     if (!data.success) {
-      console.error('Failed to delete file');
+      console.error("Failed to delete file");
       return;
     }
 
-    console.log('File deleted');
+    console.log("File deleted");
   };
 
   useEffect(() => {
@@ -178,29 +178,29 @@ function App() {
   }, [setFiles]);
 
   return (
-    <div className='flex h-screen items-start dark'>
+    <div className="flex h-screen p-2">
       <FileTree
         files={files}
         selectedId={selectedFile?.id ?? -1}
         onSelect={(file) => setSelectedFileId(file.id)}
       />
-      <div className='flex flex-col w-full justify-center items-center pt-8'>
+      <div className="flex h-full w-full grow flex-col items-center justify-center rounded-xl bg-background pt-8">
         <CommandPalette
           files={files}
           onSelectFile={(file) => setSelectedFileId(file.id)}
           onCreateFile={() => {
-            createFile('New File');
+            createFile("New File");
           }}
           onDeleteFile={() => {
             deleteFile(selectedFileId);
           }}
         />
 
-        <div className='w-[42rem]'>
+        <div className="w-[42rem]">
           <input
-            type='text'
+            type="text"
             value={selectedFile?.filename}
-            className='text-muted focus:text-primary bg-background text-5xl w-full ml-2 px-2 py-2'
+            className="ml-2 w-full bg-background px-2 py-2 text-5xl text-muted focus:text-primary focus:outline-none"
             onChange={(e) => {
               if (!selectedFile) return;
 
@@ -214,16 +214,21 @@ function App() {
                 prevFiles.map((file) =>
                   file.id === selectedFile.id
                     ? { ...selectedFile, filename: newFilename }
-                    : file
-                )
+                    : file,
+                ),
               );
 
               onUpdateFilename(selectedFile.id, newFilename);
             }}
           />
         </div>
-        <div className='w-full flex justify-center items-center'>
-          <Editor markdown={markdown} onSave={onSaveContent} />
+
+        <div className="flex h-full w-full items-stretch justify-center">
+          <Editor
+            key={selectedFileId}
+            markdown={markdown}
+            onSave={onSaveContent}
+          />
         </div>
       </div>
     </div>
