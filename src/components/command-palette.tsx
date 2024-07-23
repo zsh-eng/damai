@@ -1,4 +1,4 @@
-import { type File } from "@/App";
+import { type File } from "@/hooks/use-file";
 import { DAMAI_COMMANDS, dispatchDamaiCommand } from "@/commands";
 import {
   CommandDialog,

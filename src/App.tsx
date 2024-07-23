@@ -2,57 +2,42 @@ import { DAMAI_COMMANDS, registerDamaiCommandListener } from "@/commands";
 import CommandPalette from "@/components/command-palette";
 import PrimarySidebar from "@/components/primary-sidebar";
 import SecondarySidebar from "@/components/secondary-sidebar";
+import {
+  File,
+  useCreateFile,
+  useDeleteFile,
+  useFiles,
+  useUpdateFile,
+} from "@/hooks/use-file";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import Editor from "./components/editor";
 
-export type File = {
-  id: number;
-  filename: string;
-  content: string;
-  is_deleted: boolean;
-  created_at: string;
-};
-
 function App() {
-  const [files, setFiles] = useState<File[]>([]);
-  const [selectedFileId, setSelectedFileId] = useState<number>(-1);
-  const selectedFile = files.find((file) => file.id === selectedFileId) ?? null;
+  const { data: initialFiles = [], isLoading: isFilesLoading } = useFiles();
+  const { mutate: mutateFile, variables, isPending } = useUpdateFile();
+  const { mutateAsync: createFile } = useCreateFile();
+  const { mutateAsync: deleteFile } = useDeleteFile();
+
+  const files = isPending
+    ? initialFiles.map((file) =>
+        file.id === variables.id
+          ? {
+              ...file,
+              content: variables.content || file.content,
+              filename: variables.filename || file.filename,
+            }
+          : file,
+      )
+    : initialFiles;
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const markdown = selectedFile?.content || "";
-
-  const updateFile = async (id: number, content: string) => {
-    const response = await fetch(
-      `${import.meta.env.VITE_SERVER_URL}/files/${id}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ content }),
-      },
-    );
-
-    if (!response.ok) {
-      console.error("Failed to update file");
-      return;
-    }
-
-    const data = await response.json();
-    if (!data.success) {
-      console.error("Failed to update file");
-      return;
-    }
-
-    console.log("File updated");
-  };
 
   useEffect(() => {
     const onSaveContent = _.debounce(
       ({ content, id }: { content: string; id: number }) => {
-        setFiles((files) =>
-          files.map((f) => (f.id === id ? { ...f, content } : f)),
-        );
-        updateFile(id, content);
+        mutateFile({ id, content });
       },
       1000,
     );
@@ -64,119 +49,63 @@ function App() {
   }, []);
 
   const onUpdateFilename = _.debounce(async (id: number, filename: string) => {
-    const response = await fetch(
-      `${import.meta.env.VITE_SERVER_URL}/files/${id}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ filename }),
-      },
-    );
-
-    if (!response.ok) {
-      console.error("Failed to update file");
-      return;
-    }
-
-    const data = await response.json();
-    if (!data.success) {
-      console.error("Failed to update file");
-      return;
-    }
-
-    console.log("Filename updated");
+    mutateFile({ id, filename });
   }, 1000);
 
   useEffect(() => {
     return registerDamaiCommandListener(
       DAMAI_COMMANDS.FILE_SELECT_COMMAND,
       ({ id }) => {
-        setSelectedFileId(id);
+        const file = files.find((file) => file.id === id);
+        if (file) {
+          setSelectedFile(file);
+        }
       },
     );
   }, []);
 
   useEffect(() => {
-    const createFile = async (filename: string) => {
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/files`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ filename }),
-      });
-
-      const data = await response.json();
-      if (!data.success) {
-        console.error("Failed to create file");
-        return;
-      }
-
-      const file: File = data.file;
-      setFiles((prevFiles) => [...prevFiles, file]);
-      setSelectedFileId(file.id);
-
-      console.log("File created");
-    };
-
     return registerDamaiCommandListener(
       DAMAI_COMMANDS.FILE_CREATE_COMMAND,
-      ({ filename }) => {
-        createFile(filename);
+      async ({ filename }) => {
+        const newFile = await createFile({ filename });
+        setSelectedFile(newFile);
       },
     );
   }, []);
 
   useEffect(() => {
-    const deleteFile = async (fileId: number) => {
-      const nextFiles = files.filter((file) => file.id !== fileId);
-      const nextSelectedFileId = nextFiles[0]?.id ?? -1;
-      setFiles(nextFiles);
-      setSelectedFileId(nextSelectedFileId);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/files/${fileId}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      const data = await response.json();
-      if (!data.success) {
-        console.error("Failed to delete file");
-        return;
-      }
-
-      console.log("File deleted");
-    };
-
     return registerDamaiCommandListener(
       DAMAI_COMMANDS.FILE_DELETE_COMMAND,
-      ({ id }) => {
-        deleteFile(id);
+      async ({ id }) => {
+        const index = files.findIndex((file) => file.id === id);
+        if (index === -1) {
+          console.error(`File with id ${id} not found`);
+          return;
+        }
+        const previousIndex = (index - 1 + files.length) % files.length;
+        const file = files[previousIndex];
+        if (!file) {
+          throw new Error("File not found. This should never happen.");
+        }
+        setSelectedFile(file);
+        await deleteFile({ id });
       },
     );
   });
 
   useEffect(() => {
-    const fetchFiles = async () => {
-      const url = `${import.meta.env.VITE_SERVER_URL}/files`;
-      const response = await fetch(url);
-      const data = await response.json();
-      setFiles(data);
-      setSelectedFileId(data[0]?.id ?? -1);
-    };
-    fetchFiles();
-  }, [setFiles]);
+    if (!isFilesLoading && !selectedFile && files.length > 0) {
+      setSelectedFile(files[0]);
+    }
+  }, [isFilesLoading]);
 
   return (
     <div className="dark flex h-screen p-2">
       <PrimarySidebar
         files={files}
         selectedId={selectedFile?.id ?? -1}
-        onSelect={(file) => setSelectedFileId(file.id)}
+        onSelect={(file) => setSelectedFile(file)}
       />
 
       <div className="flex h-full w-full flex-col items-center justify-center rounded-xl bg-background pt-8">
@@ -196,14 +125,10 @@ function App() {
                 return;
               }
 
-              setFiles((prevFiles) =>
-                prevFiles.map((file) =>
-                  file.id === selectedFile.id
-                    ? { ...selectedFile, filename: newFilename }
-                    : file,
-                ),
-              );
-
+              setSelectedFile({
+                ...selectedFile,
+                filename: newFilename,
+              });
               onUpdateFilename(selectedFile.id, newFilename);
             }}
           />
@@ -211,7 +136,7 @@ function App() {
 
         <div className="flex h-full w-full items-stretch justify-center">
           <Editor
-            key={selectedFileId}
+            key={selectedFile?.id ?? -1}
             markdown={markdown}
             currentFile={selectedFile}
           />

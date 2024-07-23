@@ -19,7 +19,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { useEffect, useState } from "react";
 import ToolbarPlugin from "./plugins/ToolbarPlugin.tsx";
 import { DAMAI_COMMANDS, dispatchDamaiCommand } from "@/commands/index.ts";
-import { type File } from "@/App.tsx";
+import { type File } from "@/hooks/use-file.ts";
 
 const placeholder = "Start typing...";
 
