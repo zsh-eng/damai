@@ -10,7 +10,7 @@ import {
   useUpdateFile,
 } from "@/hooks/use-file";
 import _ from "lodash";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Editor from "./components/editor";
 
 function App() {
@@ -39,7 +39,7 @@ function App() {
       ({ content, id }: { content: string; id: number }) => {
         mutateFile({ id, content });
       },
-      1000,
+      500,
     );
 
     return registerDamaiCommandListener(
@@ -48,9 +48,12 @@ function App() {
     );
   }, []);
 
-  const onUpdateFilename = _.debounce(async (id: number, filename: string) => {
-    mutateFile({ id, filename });
-  }, 1000);
+  const onUpdateFilename = useCallback(
+    _.debounce(async (id: number, filename: string) => {
+      mutateFile({ id, filename });
+    }, 500),
+    [mutateFile],
+  );
 
   useEffect(() => {
     return registerDamaiCommandListener(

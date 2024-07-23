@@ -1,5 +1,5 @@
 // With reference to https://github.com/facebook/lexical/blob/main/packages/lexical/src/LexicalCommands.ts
-type DamaiCommand<_TPayload> = {
+type DamaiCommand<_TPayload = never> = {
   type: string;
 };
 
