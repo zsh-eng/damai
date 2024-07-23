@@ -172,7 +172,7 @@ function App() {
   }, [setFiles]);
 
   return (
-    <div className="flex h-screen p-2">
+    <div className="dark flex h-screen p-2">
       <PrimarySidebar
         files={files}
         selectedId={selectedFile?.id ?? -1}
