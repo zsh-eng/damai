@@ -84,9 +84,22 @@ const FILE_RENAME_COMMAND = createDamaiCommand<{
   id: number;
   filename: string;
 }>("file:rename");
-const FILE_DELETE_COMMAND = createDamaiCommand<{ id: number }>("file:delete");
+const FILE_DELETE_COMMAND = createDamaiCommand<{ id: number }>("file:delete", {
+  key: "D",
+  keyCode: "KeyD",
+  metaKey: true,
+  altKey: false,
+  shiftKey: true,
+});
 const FILE_CREATE_COMMAND = createDamaiCommand<{ filename: string }>(
   "file:create",
+  {
+    key: "O",
+    keyCode: "KeyO",
+    metaKey: true,
+    altKey: false,
+    shiftKey: true,
+  },
 );
 
 export const DAMAI_COMMANDS = {

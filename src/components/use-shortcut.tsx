@@ -4,7 +4,16 @@ import { useEffect } from "react";
 /**
  * Hook to register a keyboard shortcut for a Damai Command.
  */
-export default function useDamaiCommandShortcut(command: DamaiCommand<never>) {
+export default function useDamaiCommandShortcut<
+  TCommand extends DamaiCommand<unknown>,
+>(
+  ...args: TCommand extends DamaiCommand<infer TPayload>
+    ? [TPayload] extends [never]
+      ? [command: TCommand]
+      : [command: TCommand, payload: TPayload]
+    : [command: TCommand]
+) {
+  const [command, payload] = args;
   useEffect(() => {
     const keydown = (e: KeyboardEvent) => {
       if (!command.shortcut) {
@@ -21,7 +30,12 @@ export default function useDamaiCommandShortcut(command: DamaiCommand<never>) {
       ) {
         e.preventDefault();
         e.stopPropagation();
-        dispatchDamaiCommand(command);
+
+        if (payload) {
+          dispatchDamaiCommand(command, payload);
+        } else {
+          dispatchDamaiCommand(command as DamaiCommand<never>);
+        }
       }
     };
 
@@ -29,5 +43,5 @@ export default function useDamaiCommandShortcut(command: DamaiCommand<never>) {
     return () => {
       document.removeEventListener("keydown", keydown);
     };
-  }, []);
+  }, [payload]);
 }

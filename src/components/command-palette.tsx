@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/command";
 import { FilePlus, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
+import useDamaiCommandShortcut from "@/components/use-shortcut";
 
 type CommandPaletteProps = {
   files: File[];
@@ -32,22 +33,19 @@ export default function CommandPalette({
         setOpen((open) => !open);
       }
     };
-    const createFile = (e: KeyboardEvent) => {
-      if (e.key === "o" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
-        e.preventDefault();
-        dispatchDamaiCommand(DAMAI_COMMANDS.FILE_CREATE_COMMAND, {
-          filename: "New File",
-        });
-      }
-    };
 
     document.addEventListener("keydown", down);
-    document.addEventListener("keydown", createFile);
     return () => {
       document.removeEventListener("keydown", down);
-      document.removeEventListener("keydown", createFile);
     };
   }, []);
+
+  useDamaiCommandShortcut(DAMAI_COMMANDS.FILE_CREATE_COMMAND, {
+    filename: "New File",
+  });
+  useDamaiCommandShortcut(DAMAI_COMMANDS.FILE_DELETE_COMMAND, {
+    id: currentFile?.id ?? -1,
+  });
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
