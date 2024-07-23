@@ -40,7 +40,7 @@ export default function SecondarySidebar() {
     <>
       <PanelLeft
         onClick={() => setHidden((hidden) => !hidden)}
-        className="absolute right-4 top-4 h-9 w-9 cursor-pointer rounded-lg p-2 hover:bg-slate-700"
+        className="absolute right-4 top-4 z-10 h-9 w-9 cursor-pointer rounded-lg p-2 hover:bg-slate-700"
       />
       <div
         // We use box-border as a workaround to prevent the element from overflowing
