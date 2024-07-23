@@ -1,3 +1,4 @@
+// With reference to https://github.com/facebook/lexical/blob/main/packages/lexical/src/LexicalCommands.ts
 type DamaiCommand<_TPayload> = {
   type: string;
 };
@@ -99,10 +100,9 @@ export const dispatchDamaiCommand = <TCommand extends DamaiCommand<unknown>>(
 
   for (const listener of listenerSetForCommand) {
     if (!payload) {
-      const typedListener = listener as DamaiCommandListener<never>;
-      typedListener();
+      (listener as DamaiCommandListener<never>)();
     } else {
-      // @ts-ignore - TS doesn't understand that payload is defined
+      // @ts-expect-error - TS doesn't understand that payload is defined
       listener(payload);
     }
   }
