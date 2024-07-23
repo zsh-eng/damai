@@ -1,4 +1,9 @@
 import { type File } from "@/App";
+import {
+  DAMAI_COMMANDS,
+  dispatchDamaiCommand,
+  registerDamaiCommandListener,
+} from "@/commands";
 import { cn } from "@/lib/utils";
 import { PanelRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -10,9 +15,16 @@ export default function PrimarySidebar({
 }: {
   files: File[];
   selectedId?: number;
-  onSelect?: (file: File) => void;
+  onSelect?: (_file: File) => void;
 }) {
   const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    return registerDamaiCommandListener(
+      DAMAI_COMMANDS.VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND,
+      () => setHidden((hidden) => !hidden),
+    );
+  }, [setHidden, hidden]);
 
   useEffect(() => {
     const keyDown = (e: KeyboardEvent) => {
@@ -21,7 +33,9 @@ export default function PrimarySidebar({
       if (e.code === "KeyB" && e.altKey && !e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
-        setHidden((hidden) => !hidden);
+        dispatchDamaiCommand(
+          DAMAI_COMMANDS.VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND,
+        );
         console.log("pressed");
       }
     };
@@ -30,7 +44,7 @@ export default function PrimarySidebar({
     return () => {
       document.removeEventListener("keydown", keyDown);
     };
-  }, [setHidden]);
+  }, []);
 
   return (
     <>

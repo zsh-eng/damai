@@ -3,6 +3,8 @@ import PrimarySidebar from "@/components/primary-sidebar";
 import { useEffect, useState } from "react";
 import Editor from "./components/editor";
 import SecondarySidebar from "@/components/secondary-sidebar";
+import { DAMAI_COMMANDS, registerDamaiCommandListener } from "@/commands";
+import _ from "lodash";
 
 export type File = {
   id: number;
@@ -11,17 +13,6 @@ export type File = {
   is_deleted: boolean;
   created_at: string;
 };
-
-function debounce<T extends (...args: never[]) => unknown>(
-  fn: T,
-  timeoutMs = 300,
-) {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return function (...args: Parameters<T>) {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), timeoutMs);
-  };
-}
 
 function App() {
   const [files, setFiles] = useState<File[]>([]);
@@ -55,20 +46,24 @@ function App() {
     console.log("File updated");
   };
 
-  const onSaveContent = debounce((markdown: string) => {
-    const file = selectedFile;
-    if (!file) {
-      console.log("No file selected");
-      return;
-    }
-
-    setFiles((files) =>
-      files.map((f) => (f.id === file.id ? { ...f, content: markdown } : f)),
+  useEffect(() => {
+    const onSaveContent = _.debounce(
+      ({ content, id }: { content: string; id: number }) => {
+        setFiles((files) =>
+          files.map((f) => (f.id === id ? { ...f, content } : f)),
+        );
+        updateFile(id, content);
+      },
+      1000,
     );
-    updateFile(file.id, markdown);
-  }, 1000);
 
-  const onUpdateFilename = debounce(async (id: number, filename: string) => {
+    return registerDamaiCommandListener(
+      DAMAI_COMMANDS.FILE_SAVE_COMMAND,
+      (payload) => onSaveContent(payload),
+    );
+  }, []);
+
+  const onUpdateFilename = _.debounce(async (id: number, filename: string) => {
     const response = await fetch(
       `${import.meta.env.VITE_SERVER_URL}/files/${id}`,
       {
@@ -94,49 +89,76 @@ function App() {
     console.log("Filename updated");
   }, 1000);
 
-  const createFile = async (filename: string) => {
-    const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/files`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ filename }),
-    });
-
-    const data = await response.json();
-    if (!data.success) {
-      console.error("Failed to create file");
-      return;
-    }
-
-    const file: File = data.file;
-    setFiles((prevFiles) => [...prevFiles, file]);
-    setSelectedFileId(file.id);
-
-    console.log("File created");
-  };
-
-  const deleteFile = async (fileId: number) => {
-    const nextFiles = files.filter((file) => file.id !== fileId);
-    const nextSelectedFileId = nextFiles[0]?.id ?? -1;
-    setFiles(nextFiles);
-    setSelectedFileId(nextSelectedFileId);
-
-    const response = await fetch(
-      `${import.meta.env.VITE_SERVER_URL}/files/${fileId}`,
-      {
-        method: "DELETE",
+  useEffect(() => {
+    return registerDamaiCommandListener(
+      DAMAI_COMMANDS.FILE_SELECT_COMMAND,
+      ({ id }) => {
+        setSelectedFileId(id);
       },
     );
+  }, []);
 
-    const data = await response.json();
-    if (!data.success) {
-      console.error("Failed to delete file");
-      return;
-    }
+  useEffect(() => {
+    const createFile = async (filename: string) => {
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/files`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ filename }),
+      });
 
-    console.log("File deleted");
-  };
+      const data = await response.json();
+      if (!data.success) {
+        console.error("Failed to create file");
+        return;
+      }
+
+      const file: File = data.file;
+      setFiles((prevFiles) => [...prevFiles, file]);
+      setSelectedFileId(file.id);
+
+      console.log("File created");
+    };
+
+    return registerDamaiCommandListener(
+      DAMAI_COMMANDS.FILE_CREATE_COMMAND,
+      ({ filename }) => {
+        createFile(filename);
+      },
+    );
+  }, []);
+
+  useEffect(() => {
+    const deleteFile = async (fileId: number) => {
+      const nextFiles = files.filter((file) => file.id !== fileId);
+      const nextSelectedFileId = nextFiles[0]?.id ?? -1;
+      setFiles(nextFiles);
+      setSelectedFileId(nextSelectedFileId);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/files/${fileId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+      if (!data.success) {
+        console.error("Failed to delete file");
+        return;
+      }
+
+      console.log("File deleted");
+    };
+
+    return registerDamaiCommandListener(
+      DAMAI_COMMANDS.FILE_DELETE_COMMAND,
+      ({ id }) => {
+        deleteFile(id);
+      },
+    );
+  });
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -158,16 +180,7 @@ function App() {
       />
 
       <div className="flex h-full w-full flex-col items-center justify-center rounded-xl bg-background pt-8">
-        <CommandPalette
-          files={files}
-          onSelectFile={(file) => setSelectedFileId(file.id)}
-          onCreateFile={() => {
-            createFile("New File");
-          }}
-          onDeleteFile={() => {
-            deleteFile(selectedFileId);
-          }}
-        />
+        <CommandPalette files={files} currentFile={selectedFile} />
 
         <div className="w-[42rem]">
           <input
@@ -200,7 +213,7 @@ function App() {
           <Editor
             key={selectedFileId}
             markdown={markdown}
-            onSave={onSaveContent}
+            currentFile={selectedFile}
           />
         </div>
       </div>

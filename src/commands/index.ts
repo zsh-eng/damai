@@ -32,11 +32,26 @@ const VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND = createDamaiCommand<never>(
 );
 
 const FILE_SELECT_COMMAND = createDamaiCommand<{ id: number }>("file:select");
+const FILE_SAVE_COMMAND = createDamaiCommand<{ id: number; content: string }>(
+  "file:save",
+);
+const FILE_RENAME_COMMAND = createDamaiCommand<{
+  id: number;
+  filename: string;
+}>("file:rename");
+const FILE_DELETE_COMMAND = createDamaiCommand<{ id: number }>("file:delete");
+const FILE_CREATE_COMMAND = createDamaiCommand<{ filename: string }>(
+  "file:create",
+);
 
 export const DAMAI_COMMANDS = {
   VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND,
   VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND,
   FILE_SELECT_COMMAND,
+  FILE_SAVE_COMMAND,
+  FILE_RENAME_COMMAND,
+  FILE_DELETE_COMMAND,
+  FILE_CREATE_COMMAND,
 } as const;
 
 const listeners: DamaiCommandListenerMap = new Map();

@@ -13,12 +13,13 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { useEffect, useState } from "react";
 import ToolbarPlugin from "./plugins/ToolbarPlugin.tsx";
-import TreeViewPlugin from "./plugins/TreeViewPlugin.tsx";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { DAMAI_COMMANDS, dispatchDamaiCommand } from "@/commands/index.ts";
+import { type File } from "@/App.tsx";
 
 const placeholder = "Start typing...";
 
@@ -69,7 +70,7 @@ const editorConfig = {
 
 type EditorProps = {
   markdown?: string;
-  onSave?: (markdown: string) => void;
+  currentFile: File | null;
 };
 
 function UpdateMarkdownPlugin({ markdown = "" }: { markdown?: string }) {
@@ -86,7 +87,7 @@ function UpdateMarkdownPlugin({ markdown = "" }: { markdown?: string }) {
 
 export default function Editor({
   markdown: initialMarkdown = "",
-  onSave,
+  currentFile,
 }: EditorProps) {
   const [markdown, setMarkdown] = useState(initialMarkdown);
 
@@ -121,7 +122,11 @@ export default function Editor({
             onChange={(editorState) => {
               editorState.read(() => {
                 const markdown = $convertToMarkdownString(TRANSFORMERS);
-                onSave?.(markdown);
+                currentFile &&
+                  dispatchDamaiCommand(DAMAI_COMMANDS.FILE_SAVE_COMMAND, {
+                    id: currentFile.id,
+                    content: markdown,
+                  });
               });
             }}
           />

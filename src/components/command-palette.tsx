@@ -1,4 +1,5 @@
-import { type File } from '@/App';
+import { type File } from "@/App";
+import { DAMAI_COMMANDS, dispatchDamaiCommand } from "@/commands";
 import {
   CommandDialog,
   CommandEmpty,
@@ -8,60 +9,61 @@ import {
   CommandList,
   CommandSeparator,
   CommandShortcut,
-} from '@/components/ui/command';
-import { FilePlus, Trash } from 'lucide-react';
-import { useEffect, useState } from 'react';
+} from "@/components/ui/command";
+import { FilePlus, Trash } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type CommandPaletteProps = {
   files: File[];
-  onSelectFile: (file: File) => void;
-  onCreateFile: () => void;
-  onDeleteFile: () => void;
+  // TODO set up an editor context that provides the current file
+  currentFile: File | null;
 };
 
 export default function CommandPalette({
   files,
-  onSelectFile,
-  onCreateFile,
-  onDeleteFile
+  currentFile,
 }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((open) => !open);
       }
     };
     const createFile = (e: KeyboardEvent) => {
-      if (e.key === 'o' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+      if (e.key === "o" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
         e.preventDefault();
-        onCreateFile();
+        dispatchDamaiCommand(DAMAI_COMMANDS.FILE_CREATE_COMMAND, {
+          filename: "New File",
+        });
       }
     };
 
-    document.addEventListener('keydown', down);
-    document.addEventListener('keydown', createFile);
+    document.addEventListener("keydown", down);
+    document.addEventListener("keydown", createFile);
     return () => {
-      document.removeEventListener('keydown', down);
-      document.removeEventListener('keydown', createFile);
+      document.removeEventListener("keydown", down);
+      document.removeEventListener("keydown", createFile);
     };
-  }, [onCreateFile]);
+  }, []);
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder='Type a command or search...' />
+      <CommandInput placeholder="Type a command or search..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
 
-        <CommandGroup heading='Files'>
+        <CommandGroup heading="Files">
           {files.map((file) => {
             return (
               <CommandItem
                 key={file.id}
                 onSelect={() => {
-                  onSelectFile(file);
+                  dispatchDamaiCommand(DAMAI_COMMANDS.FILE_SELECT_COMMAND, {
+                    id: file.id,
+                  });
                   setOpen(false);
                 }}
               >
@@ -73,24 +75,34 @@ export default function CommandPalette({
 
         <CommandSeparator />
 
-        <CommandGroup heading='Actions'>
+        <CommandGroup heading="Actions">
           <CommandItem
             onSelect={() => {
-              onCreateFile();
+              dispatchDamaiCommand(DAMAI_COMMANDS.FILE_CREATE_COMMAND, {
+                filename: "New File",
+              });
               setOpen(false);
             }}
           >
-            <FilePlus className='mr-2 h-4 w-4' />
+            <FilePlus className="mr-2 h-4 w-4" />
             <span>New note</span>
             <CommandShortcut>⌘+⇧+O</CommandShortcut>
           </CommandItem>
           <CommandItem
             onSelect={() => {
-                onDeleteFile()
+              if (!currentFile) {
+                // TODO add toast
+                setOpen(false);
+                return;
+              }
+              dispatchDamaiCommand(DAMAI_COMMANDS.FILE_DELETE_COMMAND, {
+                id: currentFile.id,
+              });
+
               setOpen(false);
             }}
           >
-            <Trash className='mr-2 h-4 w-4' />
+            <Trash className="mr-2 h-4 w-4" />
             <span>Delete Current File</span>
           </CommandItem>
         </CommandGroup>

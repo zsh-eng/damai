@@ -1,3 +1,8 @@
+import {
+  DAMAI_COMMANDS,
+  dispatchDamaiCommand,
+  registerDamaiCommandListener,
+} from "@/commands";
 import { cn } from "@/lib/utils";
 import { PanelLeft } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -6,14 +11,22 @@ export default function SecondarySidebar() {
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
+    return registerDamaiCommandListener(
+      DAMAI_COMMANDS.VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND,
+      () => setHidden((hidden) => !hidden),
+    );
+  }, [setHidden, hidden]);
+
+  useEffect(() => {
     const keyDown = (e: KeyboardEvent) => {
       // We can't use the `key` property because it's registered as a special
       // character when the alt key is pressed.
       if (e.code === "KeyB" && e.altKey && e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
-        setHidden((hidden) => !hidden);
-        console.log("pressed");
+        dispatchDamaiCommand(
+          DAMAI_COMMANDS.VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND,
+        );
       }
     };
 
@@ -21,7 +34,7 @@ export default function SecondarySidebar() {
     return () => {
       document.removeEventListener("keydown", keyDown);
     };
-  }, [setHidden]);
+  }, []);
 
   return (
     <>
