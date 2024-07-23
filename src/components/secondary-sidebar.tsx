@@ -7,12 +7,20 @@ import { useSearchFile } from "@/hooks/use-file";
 import { cn } from "@/lib/utils";
 import { Loader2, PanelLeft, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useDebounce } from "@uidotdev/usehooks";
 
 export default function SecondarySidebar() {
   const [hidden, setHidden] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 200);
   const { data: searchResults = [], isLoading: isSearching } =
-    useSearchFile(searchQuery);
+    useSearchFile(debouncedSearchQuery);
+
+  // We should mark the search as pending if the search query has changed but the
+  // debounce hasn't triggered yet, or if the search is still in progress.
+  // We should not mark it as pending is the most updated search query is empty.
+  const pendingSearch =
+    (debouncedSearchQuery !== searchQuery && searchQuery !== "") || isSearching;
 
   useEffect(() => {
     return registerDamaiCommandListener(
@@ -61,18 +69,20 @@ export default function SecondarySidebar() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          {isSearching && (
+          {pendingSearch && (
             <Loader2 className="ml-auto h-5 w-5 animate-spin text-muted-foreground" />
           )}
         </div>
         <section className="flex flex-col gap-2">
-          {searchQuery === "" && (
+          {debouncedSearchQuery === "" && (
             <div className="text-muted">Search for files</div>
           )}
 
-          {!isSearching && searchResults.length === 0 && searchQuery !== "" && (
-            <div className="text-muted">No matches found.</div>
-          )}
+          {!pendingSearch &&
+            searchResults.length === 0 &&
+            debouncedSearchQuery !== "" && (
+              <div className="text-muted">No matches found.</div>
+            )}
 
           {searchResults.map((file) => {
             const split = /(<b>|<\/b>)/;
