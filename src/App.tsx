@@ -1,7 +1,7 @@
-import { cn } from "@/lib/utils";
+import CommandPalette from "@/components/command-palette";
+import PrimarySidebar from "@/components/primary-sidebar";
 import { useEffect, useState } from "react";
 import Editor from "./components/editor";
-import CommandPalette from "@/components/command-palette";
 
 export type File = {
   id: number;
@@ -20,35 +20,6 @@ function debounce<T extends (...args: never[]) => unknown>(
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn(...args), timeoutMs);
   };
-}
-
-function FileTree({
-  files,
-  selectedId = -1,
-  onSelect,
-}: {
-  files: File[];
-  selectedId?: number;
-  onSelect?: (file: File) => void;
-}) {
-  return (
-    <div className="-ml-2 flex h-full w-[20rem] flex-col gap-2 rounded-r-md bg-secondary py-6 pr-4">
-      {files.map((file) => {
-        return (
-          <div
-            key={file.id}
-            className={cn(
-              "rounded-r-md py-2 pl-4 text-muted-foreground hover:bg-background hover:text-primary",
-              selectedId === file.id && "bg-background",
-            )}
-            onClick={() => onSelect && onSelect(file)}
-          >
-            {file.filename}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 function App() {
@@ -179,12 +150,13 @@ function App() {
 
   return (
     <div className="flex h-screen p-2">
-      <FileTree
+      <PrimarySidebar
         files={files}
         selectedId={selectedFile?.id ?? -1}
         onSelect={(file) => setSelectedFileId(file.id)}
       />
-      <div className="flex h-full w-full grow flex-col items-center justify-center rounded-xl bg-background pt-8">
+
+      <div className="flex h-full w-full flex-col items-center justify-center rounded-xl bg-background pt-8">
         <CommandPalette
           files={files}
           onSelectFile={(file) => setSelectedFileId(file.id)}
