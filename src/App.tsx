@@ -1,10 +1,10 @@
+import { DAMAI_COMMANDS, registerDamaiCommandListener } from "@/commands";
 import CommandPalette from "@/components/command-palette";
 import PrimarySidebar from "@/components/primary-sidebar";
+import SecondarySidebar from "@/components/secondary-sidebar";
+import _ from "lodash";
 import { useEffect, useState } from "react";
 import Editor from "./components/editor";
-import SecondarySidebar from "@/components/secondary-sidebar";
-import { DAMAI_COMMANDS, registerDamaiCommandListener } from "@/commands";
-import _ from "lodash";
 
 export type File = {
   id: number;
