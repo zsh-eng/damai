@@ -43,11 +43,20 @@ function App() {
       },
       500,
     );
+    const handleUnload = (_event: BeforeUnloadEvent) => {
+      onSaveContent.flush();
+    };
 
-    return registerDamaiCommandListener(
+    const removeListener = registerDamaiCommandListener(
       DAMAI_COMMANDS.FILE_SAVE_COMMAND,
       (payload) => onSaveContent(payload),
     );
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      removeListener();
+      window.removeEventListener("beforeunload", handleUnload);
+    };
   }, []);
 
   const onUpdateFilename = useCallback(
