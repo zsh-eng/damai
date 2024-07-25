@@ -3,6 +3,7 @@ import {
   dispatchDamaiCommand,
   registerDamaiCommandListener,
 } from "@/commands";
+import { Button } from "@/components/ui/button";
 import useDamaiCommandShortcut from "@/components/use-shortcut";
 import { useSearchFile } from "@/hooks/use-file";
 import { cn } from "@/lib/utils";
@@ -46,22 +47,26 @@ export default function SecondarySidebar() {
 
   return (
     <>
-      <PanelLeft
+      <Button
+        size="icon"
+        variant="ghost"
         onClick={() => setHidden((hidden) => !hidden)}
-        className="absolute right-4 top-4 z-10 h-9 w-9 cursor-pointer rounded-lg p-2 hover:bg-slate-700"
-      />
+        className="absolute right-4 top-6 z-10 h-9 w-9 cursor-pointer rounded-lg p-2"
+      >
+        <PanelLeft />
+      </Button>
       <div
         // We use box-border as a workaround to prevent the element from overflowing
         className={cn(
-          "ml-2 flex h-full min-w-96 flex-col gap-6 rounded-xl bg-background px-4 pt-14 transition duration-200",
+          "ml-2 flex h-full min-w-96 flex-col gap-4 rounded-sm bg-background px-4 pt-3 transition duration-200",
           hidden &&
             "absolute right-0 top-0 box-border translate-x-full border-8 border-secondary",
         )}
       >
-        <div className="flex items-center gap-2 rounded-md bg-muted px-2 py-2">
+        <div className="mr-8 flex items-center gap-2 rounded-md bg-muted px-2 py-2">
           <Search className="h-5 w-5 text-muted-foreground" />
           <input
-            className="bg-transparent outline-none"
+            className="bg-transparent text-muted-foreground outline-none"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             ref={inputRef}
@@ -72,13 +77,13 @@ export default function SecondarySidebar() {
         </div>
         <section className="flex flex-col gap-2">
           {debouncedSearchQuery === "" && (
-            <div className="text-muted">Search for files</div>
+            <div className="text-muted-foreground">Search for files</div>
           )}
 
           {!pendingSearch &&
             searchResults.length === 0 &&
             debouncedSearchQuery !== "" && (
-              <div className="text-muted">No matches found.</div>
+              <div className="text-muted-foreground">No matches found.</div>
             )}
 
           {searchResults.map((file) => {
@@ -94,8 +99,8 @@ export default function SecondarySidebar() {
                   });
                 }}
               >
-                <div className="text-lg font-bold">{file.filename}</div>
-                <div>
+                <div className="text-sm font-semibold">{file.filename}</div>
+                <div className="text-xs">
                   {parts.map((part, index) => {
                     if (part === "<b>" || part === "</b>" || !part) {
                       return null;
@@ -106,13 +111,17 @@ export default function SecondarySidebar() {
                       parts?.[index + 1] === "</b>"
                     ) {
                       return (
-                        <span key={index} className="bg-amber-500/50">
+                        <span key={index} className="bg-primary/50">
                           {part}
                         </span>
                       );
                     }
 
-                    return <span key={index}>{part}</span>;
+                    return (
+                      <span key={index} className="">
+                        {part}
+                      </span>
+                    );
                   })}
                 </div>
               </div>

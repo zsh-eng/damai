@@ -37,10 +37,14 @@ export default function PrimarySidebar({
   useDamaiCommandShortcut(DAMAI_COMMANDS.VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND);
   return (
     <>
-      <PanelRight
+      <Button
+        size="icon"
+        variant="ghost"
         onClick={() => setHidden((hidden) => !hidden)}
-        className="absolute left-4 top-4 z-10 h-9 w-9 cursor-pointer rounded-lg p-2 hover:bg-slate-700"
-      />
+        className="absolute left-4 top-6 z-10 h-9 w-9 cursor-pointer rounded-lg p-2"
+      >
+        <PanelRight />
+      </Button>
       <div
         className={cn(
           "flex h-full w-60 min-w-60 flex-col gap-2 rounded-r-md bg-secondary pr-4 pt-14 transition duration-200",
@@ -52,20 +56,24 @@ export default function PrimarySidebar({
             <div
               key={file.id}
               className={cn(
-                "group flex items-center justify-between rounded-lg px-4 py-2 text-sm text-muted-foreground transition hover:bg-background/50 hover:text-primary",
+                "group flex items-center justify-between rounded-lg px-4 py-2 text-sm text-muted-foreground transition hover:bg-background/50 hover:text-accent-foreground",
                 selectedId === file.id &&
                   "bg-background shadow-md hover:bg-background",
               )}
               onClick={() => onSelect && onSelect(file)}
             >
-              <div>{file.filename}</div>
+              <div className="truncate">
+                {file.filename || (
+                  <span className="text-muted-foreground/50">Untitled</span>
+                )}
+              </div>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="invisible h-6 w-6 text-primary/50 hover:bg-background hover:text-primary group-hover:visible"
+                      className="invisible h-6 w-6 text-accent-foreground/50 hover:text-accent-foreground group-hover:visible"
                       onClick={() => [
                         dispatchDamaiCommand(
                           DAMAI_COMMANDS.FILE_DELETE_COMMAND,

@@ -1,3 +1,10 @@
+import {
+  DAMAI_COMMANDS,
+  dispatchDamaiCommand,
+  registerDamaiCommandListener,
+} from "@/commands/index.ts";
+import useDamaiCommandShortcut from "@/components/use-shortcut.tsx";
+import { type File } from "@/hooks/use-file.ts";
 import { CodeNode } from "@lexical/code";
 import { LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -18,13 +25,6 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { useEffect, useState } from "react";
 import ToolbarPlugin from "./plugins/ToolbarPlugin.tsx";
-import {
-  DAMAI_COMMANDS,
-  dispatchDamaiCommand,
-  registerDamaiCommandListener,
-} from "@/commands/index.ts";
-import { type File } from "@/hooks/use-file.ts";
-import useDamaiCommandShortcut from "@/components/use-shortcut.tsx";
 
 const placeholder = "Start typing...";
 
@@ -39,11 +39,11 @@ const editorConfig = {
   theme: {
     code: "font-mono",
     heading: {
-      h1: "scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mt-6",
-      h2: "scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight mt-6",
-      h3: "scroll-m-20 text-2xl font-semibold tracking-tight mt-6",
-      h4: "scroll-m-20 text-xl font-semibold tracking-tight mt-6",
-      h5: "scroll-m-20 text-lg font-semibold tracking-tight mt-6",
+      h1: "scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mt-6 text-primary",
+      h2: "scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight mt-6 text-primary",
+      h3: "scroll-m-20 text-2xl font-semibold tracking-tight mt-6 text-primary",
+      h4: "scroll-m-20 text-xl font-semibold tracking-tight mt-6 text-primary",
+      h5: "scroll-m-20 text-lg font-semibold tracking-tight mt-6 text-primary",
     },
     image: "editor-image",
     link: "editor-link",
@@ -83,7 +83,7 @@ function UpdateMarkdownPlugin({ markdown = "" }: { markdown?: string }) {
 
   useEffect(() => {
     editor.update(() => {
-      $convertFromMarkdownString(markdown, TRANSFORMERS);
+      $convertFromMarkdownString(markdown, TRANSFORMERS, undefined, true);
     });
   }, [markdown, editor]);
 
@@ -116,10 +116,11 @@ export default function Editor({
     <LexicalComposer
       initialConfig={{
         ...editorConfig,
-        editorState: () => $convertFromMarkdownString(markdown, TRANSFORMERS),
+        editorState: () =>
+          $convertFromMarkdownString(markdown, TRANSFORMERS, undefined, true),
       }}
     >
-      <div className="w-full max-w-2xl">
+      <div className="h-full w-full max-w-2xl">
         <ToolbarPlugin />
         <UpdateMarkdownPlugin markdown={markdown} />
         <FocusPlugin />
@@ -143,7 +144,11 @@ export default function Editor({
             ignoreSelectionChange={true}
             onChange={(editorState) => {
               editorState.read(() => {
-                const markdown = $convertToMarkdownString(TRANSFORMERS);
+                const markdown = $convertToMarkdownString(
+                  TRANSFORMERS,
+                  undefined,
+                  true,
+                );
                 currentFile &&
                   dispatchDamaiCommand(DAMAI_COMMANDS.FILE_SAVE_COMMAND, {
                     id: currentFile.id,
