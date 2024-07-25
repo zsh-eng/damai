@@ -106,7 +106,7 @@ function App() {
         await deleteFile({ id });
       },
     );
-  }, []);
+  }, [files]);
 
   useDamaiCommandShortcut(DAMAI_COMMANDS.VIEW_FOCUS_FILENAME_COMMAND);
   useEffect(() => {
