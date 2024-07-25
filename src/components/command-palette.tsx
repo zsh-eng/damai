@@ -102,6 +102,7 @@ export default function CommandPalette({
           >
             <Trash className="mr-2 h-4 w-4" />
             <span>Delete Current File</span>
+            <CommandShortcut>⌘+⇧+D</CommandShortcut>
           </CommandItem>
         </CommandGroup>
       </CommandList>
