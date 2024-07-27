@@ -3,6 +3,7 @@ import {
   dispatchDamaiCommand,
   registerDamaiCommandListener,
 } from "@/commands/index.ts";
+import CustomCursorPlugin from "@/components/plugins/CustomCursorPlugin.tsx";
 import useDamaiCommandShortcut from "@/components/use-shortcut.tsx";
 import { type File } from "@/hooks/use-file.ts";
 import { CodeNode } from "@lexical/code";
@@ -23,7 +24,7 @@ import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPl
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
-import { useEffect, useState } from "react";
+import { ElementRef, useCallback, useEffect, useRef, useState } from "react";
 import ToolbarPlugin from "./plugins/ToolbarPlugin.tsx";
 
 const placeholder = "Start typing...";
@@ -76,6 +77,13 @@ const editorConfig = {
 type EditorProps = {
   markdown?: string;
   currentFile: File | null;
+  /**
+   * The scroll position of the editor container.
+   */
+  scrollPosition?: {
+    top: number;
+    left: number;
+  };
 };
 
 function UpdateMarkdownPlugin({ markdown = "" }: { markdown?: string }) {
@@ -109,8 +117,63 @@ function FocusPlugin() {
 export default function Editor({
   markdown: initialMarkdown = "",
   currentFile,
+  scrollPosition,
 }: EditorProps) {
   const [markdown, setMarkdown] = useState(initialMarkdown);
+  const containerRef = useRef<ElementRef<"div">>(null);
+  const [offset, setOffset] = useState<
+    | {
+        top: number;
+        left: number;
+      }
+    | undefined
+  >(scrollPosition);
+
+  const combinedOffset = offset
+    ? {
+        top: offset.top - (scrollPosition?.top || 0),
+        left: offset.left - (scrollPosition?.left || 0),
+      }
+    : undefined;
+
+  const updateOffset = () => {
+    if (!containerRef.current) return;
+    const rec = containerRef.current.getBoundingClientRect();
+    console.log(`Setting offset to`, rec.top, rec.left);
+    setOffset({
+      top: rec.top,
+      left: rec.left,
+    });
+  };
+
+  useEffect(() => {
+    updateOffset();
+  }, [updateOffset]);
+
+  useEffect(() => {
+    // We have to wait until the animation completes before we get the updated
+    // client bounding rect of the container
+    const ANIMATION_DELAY = 100;
+    const primaryListener = registerDamaiCommandListener(
+      DAMAI_COMMANDS.VIEW_TOGGLE_PRIMARY_SIDEBAR_COMMAND,
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, ANIMATION_DELAY));
+        updateOffset();
+      },
+    );
+    const secondaryListener = registerDamaiCommandListener(
+      DAMAI_COMMANDS.VIEW_TOGGLE_SECONDARY_SIDEBAR_COMMAND,
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, ANIMATION_DELAY));
+        updateOffset();
+      },
+    );
+
+    return () => {
+      primaryListener();
+      secondaryListener();
+    };
+  }, [updateOffset]);
 
   return (
     <LexicalComposer
@@ -120,7 +183,7 @@ export default function Editor({
           $convertFromMarkdownString(markdown, TRANSFORMERS, undefined, true),
       }}
     >
-      <div className="h-full w-full max-w-2xl">
+      <div className="relative h-full w-full max-w-2xl" ref={containerRef}>
         <ToolbarPlugin />
         <UpdateMarkdownPlugin markdown={markdown} />
         <FocusPlugin />
@@ -129,7 +192,7 @@ export default function Editor({
             placeholder={<div className="pl-4 text-muted">{placeholder}</div>}
             contentEditable={
               <ContentEditable
-                className="z-10 h-full p-4 text-foreground focus:outline-none"
+                className="z-10 h-full p-4 text-foreground caret-transparent focus:outline-none"
                 aria-placeholder={placeholder}
                 placeholder={placeholder}
               />
@@ -138,6 +201,7 @@ export default function Editor({
           />
           <HistoryPlugin />
           <AutoFocusPlugin />
+          <CustomCursorPlugin offset={combinedOffset} />
           {/* <TreeViewPlugin /> */}
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin

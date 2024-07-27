@@ -25,6 +25,15 @@ function App() {
   const { mutateAsync: deleteFile } = useDeleteFile();
   const filenameRef = useRef<ElementRef<"input">>(null);
 
+  const editorContainerRef = useRef<ElementRef<"div">>(null);
+  const [scrollPosition, setScrollPosition] = useState<{
+    top: number;
+    left: number;
+  }>({
+    top: 0,
+    left: 0,
+  });
+
   const files = isPending
     ? initialFiles.map((file) =>
         file.id === variables.id
@@ -130,6 +139,32 @@ function App() {
     }
   }, [isFilesLoading]);
 
+  useEffect(() => {
+    if (!editorContainerRef.current) return;
+
+    const editorContainer = editorContainerRef.current;
+    const scrollListener = (e: Event) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      console.log(
+        `Setting scroll position to`,
+        target.scrollTop,
+        target.scrollLeft,
+      );
+      setScrollPosition({
+        top: target.scrollTop,
+        left: target.scrollLeft,
+      });
+    };
+
+    editorContainer.addEventListener("scroll", scrollListener);
+
+    return () => {
+      editorContainer.removeEventListener("scroll", scrollListener);
+    };
+  }, []);
+
   return (
     <div className="light flex h-screen px-2 pb-2 pt-3">
       <PrimarySidebar
@@ -138,7 +173,10 @@ function App() {
         onSelect={(file) => setSelectedFile(file)}
       />
 
-      <div className="flex h-full w-full flex-col items-center justify-start overflow-y-auto rounded-sm bg-background pb-12 pt-6">
+      <div
+        className="flex h-full w-full flex-col items-center justify-start overflow-y-auto rounded-sm bg-background pb-12 pt-6"
+        ref={editorContainerRef}
+      >
         <CommandPalette files={files} currentFile={selectedFile} />
 
         <div className="mx-auto w-[32rem] rounded-md border">
