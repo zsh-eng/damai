@@ -68,6 +68,14 @@ export default function CustomCursorPlugin({
         return false;
       }
 
+      const hasMultipleCharacters =
+        selection.anchor.offset - selection.focus.offset !== 0;
+
+      if (hasMultipleCharacters) {
+        setCursorPosition(null);
+        return false;
+      }
+
       const anchorNode = selection.anchor.getNode();
       const focusNode = selection.focus.getNode();
 
