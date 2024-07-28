@@ -130,7 +130,7 @@ export default function CustomCursorPlugin({
         // `ease-in` looks jittery when the user is typing
         // `ease-out` looks smoother
         className={cn(
-          "pointer-events-none absolute left-0 top-0 z-50 w-[3px] rounded-xl bg-primary/70 transition-all ease-out will-change-transform",
+          "pointer-events-none absolute left-0 top-0 z-20 w-[3px] rounded-xl bg-primary/70 transition-all ease-out will-change-transform",
           "duration-75",
         )}
       />
