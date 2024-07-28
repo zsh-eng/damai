@@ -143,7 +143,7 @@ function App() {
     if (!editorContainerRef.current) return;
 
     const editorContainer = editorContainerRef.current;
-    const scrollListener = (e: Event) => {
+    const throttledScrollListener = _.throttle((e: Event) => {
       const target = e.target;
       if (!(target instanceof HTMLElement)) return;
 
@@ -151,12 +151,12 @@ function App() {
         top: target.scrollTop,
         left: target.scrollLeft,
       });
-    };
+    }, 100);
 
-    editorContainer.addEventListener("scroll", scrollListener);
+    editorContainer.addEventListener("scroll", throttledScrollListener);
 
     return () => {
-      editorContainer.removeEventListener("scroll", scrollListener);
+      editorContainer.removeEventListener("scroll", throttledScrollListener);
     };
   }, []);
 

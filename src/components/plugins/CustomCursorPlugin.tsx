@@ -43,7 +43,6 @@ export default function CustomCursorPlugin({
   const [editor] = useLexicalComposerContext();
   const [previousOffset, setPreviousOffset] = useState(offset);
 
-  console.log(offset);
   useEffect(() => {
     setPreviousOffset(offset);
   }, [offset]);
