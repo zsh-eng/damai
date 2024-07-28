@@ -127,7 +127,7 @@ export default function Editor({
         left: number;
       }
     | undefined
-  >(scrollPosition);
+  >();
 
   const combinedOffset = offset
     ? {
@@ -136,15 +136,14 @@ export default function Editor({
       }
     : undefined;
 
-  const updateOffset = () => {
+  const updateOffset = useCallback(() => {
     if (!containerRef.current) return;
     const rec = containerRef.current.getBoundingClientRect();
-    console.log(`Setting offset to`, rec.top, rec.left);
     setOffset({
       top: rec.top,
       left: rec.left,
     });
-  };
+  }, []);
 
   useEffect(() => {
     updateOffset();

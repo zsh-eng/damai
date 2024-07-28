@@ -43,6 +43,7 @@ export default function CustomCursorPlugin({
   const [editor] = useLexicalComposerContext();
   const [previousOffset, setPreviousOffset] = useState(offset);
 
+  console.log(offset);
   useEffect(() => {
     setPreviousOffset(offset);
   }, [offset]);
@@ -90,6 +91,15 @@ export default function CustomCursorPlugin({
         return false;
       }
 
+      // const blockRange = createDOMRange(
+      //   editor,
+      //   anchorNode,
+      //   selection.anchor.offset,
+      //   focusNode,
+      //   selection.focus.offset,
+      // );
+      // console.log(blockRange);
+
       const [rect] = createRectsFromDOMRange(editor, domRange);
       // The dom rects are drawn relative to the viewport,
       // and we want the cursor to move it's position if the editor container
@@ -126,11 +136,12 @@ export default function CustomCursorPlugin({
         style={{
           translate: `${cursorPosition.left}px ${cursorPosition.top}px`,
           height: `${height}px`,
+          width: "3px",
         }}
         // `ease-in` looks jittery when the user is typing
         // `ease-out` looks smoother
         className={cn(
-          "pointer-events-none absolute left-0 top-0 z-20 w-[3px] rounded-xl bg-primary/70 transition-all ease-out will-change-transform",
+          "pointer-events-none absolute left-0 top-0 z-20 rounded-xl bg-primary/70 transition-all ease-out will-change-transform",
           "duration-75",
         )}
       />

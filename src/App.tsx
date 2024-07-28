@@ -147,11 +147,6 @@ function App() {
       const target = e.target;
       if (!(target instanceof HTMLElement)) return;
 
-      console.log(
-        `Setting scroll position to`,
-        target.scrollTop,
-        target.scrollLeft,
-      );
       setScrollPosition({
         top: target.scrollTop,
         left: target.scrollLeft,
@@ -215,6 +210,7 @@ function App() {
             key={selectedFile?.id ?? -1}
             markdown={markdown}
             currentFile={selectedFile}
+            scrollPosition={scrollPosition}
           />
         </div>
       </div>
