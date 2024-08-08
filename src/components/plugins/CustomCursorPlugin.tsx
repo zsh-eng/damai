@@ -294,10 +294,12 @@ export default function CustomCursorPlugin({
           if (payload.key === "h") {
             handled = true;
             $moveCharacter(selection, false, true);
+            setHorizontal(undefined);
           }
           if (payload.key === "l") {
             handled = true;
             $moveCharacter(selection, false, false);
+            setHorizontal(undefined);
           }
 
           if (handled) {
@@ -366,7 +368,7 @@ export default function CustomCursorPlugin({
           range.startContainer,
           Math.min(
             range.startOffset + 1,
-            range.startContainer.nodeValue?.length ?? 0,
+            range.startContainer.textContent?.length ?? 0,
           ),
         );
         const rect = range.getBoundingClientRect();
