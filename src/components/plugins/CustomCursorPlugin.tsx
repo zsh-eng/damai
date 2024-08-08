@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $moveCharacter } from "@lexical/selection";
 import {
-  $getRoot,
   $getSelection,
   $isRangeSelection,
   CLICK_COMMAND,
@@ -10,7 +9,6 @@ import {
   CommandListener,
   CommandPayloadType,
   KEY_DOWN_COMMAND,
-  RangeSelection,
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
 import { useEffect, useState } from "react";
@@ -34,17 +32,13 @@ type CustomCursorPluginProps = {
 
 type Mode = "command" | "edit";
 
-function $isSelectionAtEndOfRoot(selection: RangeSelection) {
-  const focus = selection.focus;
-  return focus.key === "root" && focus.offset === $getRoot().getChildrenSize();
-}
-
 /**
  * Searches the parent elements of the given element to find a scrollable parent.
  * @param element the element to start the search from
  * @returns the scrollable parent or the document element if no scrollable parent is found
  */
 function findScrollableParent(element: Element) {
+  // https://stackoverflow.com/questions/35939886/find-first-scrollable-parent
   let parent = element.parentElement;
   while (parent) {
     const style = window.getComputedStyle(parent);
@@ -52,9 +46,8 @@ function findScrollableParent(element: Element) {
       style.overflow === "auto" ||
       style.overflow === "scroll" ||
       style.overflowY === "auto" ||
-      style.overflowY === "scroll" ||
-      style.overflowX === "auto" ||
-      style.overflowX === "scroll";
+      style.overflowY === "scroll";
+
     if (isScrollable && parent.scrollHeight > parent.clientHeight) {
       return parent;
     }
@@ -63,26 +56,100 @@ function findScrollableParent(element: Element) {
   return document.documentElement; // Fallback to document element
 }
 
+/**
+ * Returns the bounding client rect of the given range.
+ *
+ * Handles the special case when the range is on a new line.
+ * In this case, the bounding client rect will be at position (0, 0),
+ * So we return the bounding client rect of the common ancestor element.
+ *
+ * @param range
+ */
+function getRangeBoundingClientRect(range: Range): DOMRect | null {
+  const rect = range.getBoundingClientRect();
+  if (rect.width !== 0 || rect.height !== 0) {
+    return rect;
+  }
+
+  const container = range.startContainer;
+  if (!(container instanceof Element) || container.tagName !== "P") {
+    return null;
+  }
+  return container.getBoundingClientRect();
+}
+
+// https://stackoverflow.com/questions/123999/how-can-i-tell-if-a-dom-element-is-visible-in-the-current-viewport
+function isElementInViewport(element: Element) {
+  const rect = element.getBoundingClientRect();
+  return (
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <=
+      (window.innerHeight ||
+        document.documentElement.clientHeight) /* or $(window).height() */ &&
+    rect.right <=
+      (window.innerWidth ||
+        document.documentElement.clientWidth) /* or $(window).width() */
+  );
+}
+
+function getElementFromSelection(selection: Selection): Element | null {
+  const anchorNode = selection.anchorNode;
+  if (!anchorNode) {
+    return null;
+  }
+
+  if (anchorNode.nodeType === Node.TEXT_NODE) {
+    return anchorNode.parentElement;
+  }
+
+  if (anchorNode.nodeType === Node.ELEMENT_NODE) {
+    return anchorNode as Element;
+  }
+
+  console.error("Unexpected node type", anchorNode.nodeType);
+  return null;
+}
+
+/**
+ * Moves the caret vertically by a line.
+ *
+ * The previous horizontal position is used to keep the caret in the same column,
+ * similar to the native "arrow down / up" behaviour.
+ *
+ * @param direction the direction to move the caret
+ * @param horizontal the previous horizontal position of the caret, if any
+ * @returns the new horizontal position of the caret
+ */
 function moveCaretVertically(
   direction: "up" | "down",
   horizontal?: number,
 ): number | undefined {
-  if (!document.caretRangeFromPoint) {
-    console.error("Caret range from point not supported");
+  const selection = window.getSelection();
+  if (!selection) {
     return;
   }
 
-  const selection = window.getSelection();
-  if (!selection) {
-    console.log("No selection found");
+  if (!document.caretRangeFromPoint) {
+    console.error("Caret range from point not supported");
     return;
   }
 
   const range = selection.getRangeAt(0);
   const isElementNode = selection.anchorNode?.nodeType === Node.ELEMENT_NODE;
 
+  const element = getElementFromSelection(selection);
+  if (!element) {
+    console.error("No element found for the selection");
+    return;
+  }
+
+  if (!isElementInViewport(element)) {
+    element.scrollIntoView({ block: "center" });
+  }
+
   const rect = isElementNode
-    ? (selection.anchorNode as Element).getBoundingClientRect()
+    ? element.getBoundingClientRect()
     : range.getBoundingClientRect();
 
   const multiplier = direction === "up" ? -1 : 1;
@@ -104,29 +171,26 @@ function moveCaretVertically(
       const goalRange = document.caretRangeFromPoint(x, y + dy);
 
       if (!goalRange) {
-        console.log(`Iteration ${i} failed`);
         continue;
       }
-      const boundingRect = goalRange.getBoundingClientRect();
-      if (boundingRect.width === 0 && boundingRect.height === 0) {
-        console.log(`Iteration ${i} empty`, boundingRect);
+
+      const boundingRect = getRangeBoundingClientRect(goalRange);
+      if (!boundingRect) {
         continue;
       }
 
       const EPSILON = 1;
       const isNewLine = multiplier * (boundingRect.y - rect.y) > EPSILON;
       if (!isNewLine) {
-        console.log(`Iteration ${i} rect`, boundingRect);
         continue;
       }
 
-      console.log(`Iteration ${i} found`, boundingRect);
+      // console.log(`Iteration ${i} found`, boundingRect);
       selection.removeAllRanges();
       selection.addRange(goalRange);
 
       const selectionElement = getElementFromSelection(selection);
       selectionElement?.scrollIntoView({ block: "nearest" });
-      console.log("end", x);
       return {
         success: true,
         newHorizontal: x,
@@ -137,29 +201,13 @@ function moveCaretVertically(
     };
   };
 
-  let res = updateRange();
+  const res = updateRange();
   if (res.success) {
     return res.newHorizontal;
   }
 
   // retry with scroll
-  const elNode = isElementNode
-    ? selection.anchorNode
-    : selection.anchorNode?.parentNode;
-
-  if (!elNode) {
-    console.error(
-      "The parent element node is missing. Skipping the scroll fallback behaviour...",
-    );
-    return;
-  }
-  if (!(elNode instanceof Element)) {
-    console.error(
-      "The parent element node is not an instance of Element. Skipping the scroll fallback behaviour...",
-    );
-  }
-
-  const scrollableParent = findScrollableParent(elNode as Element);
+  const scrollableParent = findScrollableParent(element);
   let retriesRemaining = 3;
   do {
     console.log("Retrying", retriesRemaining);
@@ -169,30 +217,12 @@ function moveCaretVertically(
       behavior: "instant",
     });
 
-    res = updateRange();
+    const res = updateRange();
     if (res.success) {
       return res.newHorizontal;
     }
     retriesRemaining--;
   } while (retriesRemaining > 0);
-}
-
-function getElementFromSelection(selection: Selection): Element | null {
-  const anchorNode = selection.anchorNode;
-  if (!anchorNode) {
-    return null;
-  }
-
-  if (anchorNode.nodeType === Node.TEXT_NODE) {
-    return anchorNode.parentElement;
-  }
-
-  if (anchorNode.nodeType === Node.ELEMENT_NODE) {
-    return anchorNode as Element;
-  }
-
-  console.error("Unexpected node type", anchorNode.nodeType);
-  return null;
 }
 
 /**
@@ -377,7 +407,12 @@ export default function CustomCursorPlugin({
       }
 
       const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
+      const rect = getRangeBoundingClientRect(range);
+      if (!rect) {
+        console.error("Bounding client rect not found");
+        return false;
+      }
+
       // The dom rects are drawn relative to the viewport,
       // and we want the cursor to move its new position if the editor container moves.
       // The cursor will automatically move to its new position without any changes
@@ -386,13 +421,15 @@ export default function CustomCursorPlugin({
       // new position of the editor container.
       setCursorPosition({
         top: rect.top - (offset?.top ?? 0),
-        left: rect.right - (offset?.left ?? 0),
+        left: rect.left - (offset?.left ?? 0),
       });
       setHeight(rect.height * 1.05);
 
       return false;
     };
 
+    // It's necessary to update the cursor position everytime the offset changes
+    // This is such that we position the cursor correctly when we scroll.
     updateCursorPosition();
     const unregisterCommand = editor.registerCommand(
       SELECTION_CHANGE_COMMAND,
