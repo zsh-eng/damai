@@ -299,7 +299,6 @@ export default function CustomCursorPlugin({
             return false;
           }
 
-          let handled = false;
           const selection = $getSelection();
           if (!$isRangeSelection(selection)) {
             return false;
@@ -308,35 +307,27 @@ export default function CustomCursorPlugin({
           // Reference: @lexical/plain-text
           // Each of these should be extracted to custom commands to handle operator motions
           if (payload.key === "i" && !payload.shiftKey) {
-            handled = true;
             setMode("edit");
           }
           if (payload.key === "j") {
-            handled = true;
             const h = moveCaretVertically("down", horizontal);
             setHorizontal(h);
           }
           if (payload.key === "k") {
-            handled = true;
             const h = moveCaretVertically("up", horizontal);
             setHorizontal(h);
           }
           if (payload.key === "h") {
-            handled = true;
             $moveCharacter(selection, false, true);
             setHorizontal(undefined);
           }
           if (payload.key === "l") {
-            handled = true;
             $moveCharacter(selection, false, false);
             setHorizontal(undefined);
           }
 
-          if (handled) {
-            payload.preventDefault();
-            return true;
-          }
-          break;
+          payload.preventDefault();
+          return true;
       }
 
       setHorizontal(undefined);
