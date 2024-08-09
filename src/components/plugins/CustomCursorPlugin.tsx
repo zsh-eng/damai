@@ -266,21 +266,6 @@ export default function CustomCursorPlugin({
   }, [offset, previousOffset, cursorPosition]);
 
   useEffect(() => {
-    const listener = (e: KeyboardEvent) => {
-      switch (mode) {
-        case "edit":
-          if (e.key === "[" && e.ctrlKey) {
-            setMode("command");
-          }
-          break;
-        case "command":
-          if (e.key === "i" && !e.shiftKey) {
-            setMode("edit");
-          }
-          break;
-      }
-    };
-
     // LexicalEvents always dispatches the KEY_DOWN_COMMAND first.
     // If the command is handled by a custom handler, then the subsequent commands
     // aren't checked for.
@@ -334,7 +319,6 @@ export default function CustomCursorPlugin({
       return false;
     };
 
-    document.addEventListener("keydown", listener);
     const cleanup = editor.registerCommand(
       KEY_DOWN_COMMAND,
       keydownListener,
@@ -350,7 +334,6 @@ export default function CustomCursorPlugin({
     );
 
     return () => {
-      document.removeEventListener("keydown", listener);
       cleanup();
       cleanup2();
     };
