@@ -102,7 +102,7 @@ function getRangeBoundingClientRect(range: Range): DOMRect | null {
   }
 
   const container = range.startContainer;
-  if (!(container instanceof Element) || container.tagName !== "P") {
+  if (!(container instanceof Element)) {
     return null;
   }
   return container.getBoundingClientRect();
@@ -529,11 +529,16 @@ export default function CustomCursorPlugin({
       // to the cursor position state.
       // However, we want all subsequent calculations to be relative to the
       // new position of the editor container.
+      const fontSize = window.getComputedStyle(element).fontSize;
+      const fontSizeNumber = parseFloat(fontSize);
+      const cursorHeight = fontSizeNumber * 1.2;
+      // On new lines, the cursor should be offset a little bit more
+      // as the height of the element is greater than the cursor height.
       setCursorPosition({
-        top: rect.top - (offset?.top ?? 0),
+        top: rect.top - (offset?.top ?? 0) + (rect.height - cursorHeight) / 2,
         left: rect.left - (offset?.left ?? 0),
       });
-      setHeight(rect.height * 1.05);
+      setHeight(cursorHeight);
 
       return false;
     };
