@@ -56,17 +56,47 @@ function findScrollableParent(element: Element) {
   return document.documentElement; // Fallback to document element
 }
 
+function checkIsNewLineWrap(rects: DOMRectList) {
+  if (rects.length !== 2) {
+    return false;
+  }
+
+  const [rect1, rect2] = rects;
+  return (
+    rect1.x > rect2.x && rect1.y < rect2.y && rect1.height === rect2.height
+  );
+}
+
 /**
  * Returns the bounding client rect of the given range.
  *
- * Handles the special case when the range is on a new line.
+ * Handles 2 special cases:
+ *
+ * 1. When the range is on a new line.
  * In this case, the bounding client rect will be at position (0, 0),
  * So we return the bounding client rect of the common ancestor element.
+ *
+ * 2. When the range is one the start of a new line that's been wrapped.
+ * In this case, the `range.getClientRects()` returns 2 client rects,
+ * 1 on the end of the previous line and 1 at the start of the new line.
+ * `range.getBoundingClientRect()` returns the rectangle on the previous line,
+ * which is not what we want.
  *
  * @param range
  */
 function getRangeBoundingClientRect(range: Range): DOMRect | null {
+  const rects = range.getClientRects();
+
+  if (checkIsNewLineWrap(rects)) {
+    // We return the rectangle on the next line, but this means that
+    // if the user clicks the end of a line, the cursor will be at the start of the next line.
+    // TODO: Think of a way for handling this case.
+    // This is only a problem when we're rendering a virtual cursor.
+    return rects[1];
+  }
+
   const rect = range.getBoundingClientRect();
+
   if (rect.width !== 0 || rect.height !== 0) {
     return rect;
   }
@@ -150,7 +180,12 @@ function moveCaretVertically(
 
   const rect = isElementNode
     ? element.getBoundingClientRect()
-    : range.getBoundingClientRect();
+    : getRangeBoundingClientRect(range);
+
+  if (!rect) {
+    console.error("Bounding client rect not found");
+    return;
+  }
 
   const multiplier = direction === "up" ? -1 : 1;
   const updateRange = ():
@@ -161,7 +196,14 @@ function moveCaretVertically(
     | { success: false } => {
     const rect = isElementNode
       ? (selection.anchorNode as Element).getBoundingClientRect()
-      : range.getBoundingClientRect();
+      : getRangeBoundingClientRect(range);
+
+    if (!rect) {
+      return {
+        success: false,
+      };
+    }
+
     const x = horizontal || (rect.left + rect.right) / 2;
     const y = (rect.top + rect.bottom) / 2;
 
@@ -463,7 +505,13 @@ export default function CustomCursorPlugin({
             range.startContainer.textContent?.length ?? 0,
           ),
         );
-        const rect = range.getBoundingClientRect();
+
+        const rect = getRangeBoundingClientRect(range);
+        if (!rect) {
+          console.error("Bounding client rect not found");
+          return false;
+        }
+
         const newWidth = rect.width;
         setWidth(newWidth);
       }
@@ -471,7 +519,7 @@ export default function CustomCursorPlugin({
       const range = selection.getRangeAt(0);
       const rect = getRangeBoundingClientRect(range);
       if (!rect) {
-        console.error("Bounding client rect not found");
+        console.error("updateCursorPosition: Bounding client rect not found");
         return false;
       }
 
