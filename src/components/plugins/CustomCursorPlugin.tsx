@@ -248,8 +248,6 @@ function moveCaretVertically(
       selection.removeAllRanges();
       selection.addRange(goalRange);
 
-      const selectionElement = getElementFromSelection(selection);
-      selectionElement?.scrollIntoView({ block: "nearest" });
       return {
         success: true,
         newHorizontal: x,
@@ -439,6 +437,18 @@ export default function CustomCursorPlugin({
           if (payload.key === "l") {
             $moveCharacter(selection, false, false);
             setHorizontal(undefined);
+          }
+
+          const isMovement = ["j", "k", "h", "l"].includes(payload.key);
+          if (isMovement) {
+            const selection = window.getSelection();
+            if (selection) {
+              const selectionElement = getElementFromSelection(selection);
+              selectionElement?.scrollIntoView({
+                block: "nearest",
+                behavior: "instant",
+              });
+            }
           }
 
           payload.preventDefault();
