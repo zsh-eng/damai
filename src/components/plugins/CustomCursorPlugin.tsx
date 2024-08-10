@@ -185,6 +185,23 @@ function moveCaretVertically(
         continue;
       }
 
+      // Chrome puts selection between lines to the start of the new line
+      // We continue the search if we're currently between lines
+
+      const HORIZONTAL_EPSILON = 20;
+      const isSignificantChangeInHorizontal =
+        x - boundingRect.x > HORIZONTAL_EPSILON;
+      const isOffsetAtStartOfLine = goalRange.startOffset === 0;
+      const isNotEmptyLine = goalRange.startContainer?.nodeValue !== null;
+
+      const isIncorrectChromeCaretResult =
+        isSignificantChangeInHorizontal &&
+        isOffsetAtStartOfLine &&
+        isNotEmptyLine;
+      if (isIncorrectChromeCaretResult) {
+        continue;
+      }
+
       // console.log(`Iteration ${i} found`, boundingRect);
       selection.removeAllRanges();
       selection.addRange(goalRange);
@@ -224,6 +241,77 @@ function moveCaretVertically(
     retriesRemaining--;
   } while (retriesRemaining > 0);
 }
+
+// TODO the vim state should sync with the lexcial react state
+// such that we can update the cursor to the block cursor accordingly
+// The way we do that is to dispatch our custom commmands whenever the state is updated
+// and subscribe to the state changes to update React state automatically
+// Essentially the Vim instance should be the source of truth for the Vim state
+
+/**
+ * Represents the Vim state of the editor.
+ */
+class Vim {
+  /** The coordinates of caret's offset.  */
+  private horizontal: number | undefined;
+  /** The current mode of the Vim editor */
+  private mode: Mode = "command";
+
+  constructor() {}
+  updateMode(mode: Mode) {
+    this.mode = mode;
+  }
+
+  $handleKeydownListener(event: KeyboardEvent) {
+    switch (this.mode) {
+      case "edit":
+        if (event.key === "[" && event.ctrlKey) {
+          this.updateMode("command");
+          return true;
+        }
+        break;
+      case "command":
+        if (event.ctrlKey || event.metaKey || event.altKey) {
+          return false;
+        }
+
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) {
+          return false;
+        }
+
+        // Reference: @lexical/plain-text
+        // Each of these should be extracted to custom commands to handle operator motions
+        if (event.key === "i" && !event.shiftKey) {
+          this.updateMode("edit");
+        }
+        if (event.key === "j") {
+          const h = moveCaretVertically("down", this.horizontal);
+          this.horizontal = h;
+        }
+        if (event.key === "k") {
+          const h = moveCaretVertically("up", this.horizontal);
+          this.horizontal = h;
+        }
+        if (event.key === "h") {
+          $moveCharacter(selection, false, true);
+          this.horizontal = undefined;
+        }
+        if (event.key === "l") {
+          $moveCharacter(selection, false, false);
+          this.horizontal = undefined;
+        }
+
+        event.preventDefault();
+        return true;
+    }
+
+    this.horizontal = undefined;
+    return false;
+  }
+}
+
+const vim = new Vim();
 
 /**
  * A custom cursor plugin that shows a cursor at the current selection.
