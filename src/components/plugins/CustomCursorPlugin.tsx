@@ -3,7 +3,11 @@ import {
   getRangeBoundingClientRect,
 } from "@/lib/lexical/utils";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { SELECTION_CHANGE_COMMAND } from "lexical";
+import {
+  COMMAND_PRIORITY_NORMAL,
+  SELECTION_CHANGE_COMMAND,
+  UNDO_COMMAND,
+} from "lexical";
 import { useEffect, useState } from "react";
 
 type Cursor = {
@@ -139,7 +143,13 @@ export default function CustomCursorPlugin({
     const unregisterCommand = editor.registerCommand(
       SELECTION_CHANGE_COMMAND,
       updateCursorPosition,
-      1,
+      COMMAND_PRIORITY_NORMAL,
+    );
+
+    const unregisterCommand2 = editor.registerCommand(
+      UNDO_COMMAND,
+      updateCursorPosition,
+      COMMAND_PRIORITY_NORMAL,
     );
 
     const loseFocusListener = () => {
@@ -150,6 +160,7 @@ export default function CustomCursorPlugin({
 
     return () => {
       unregisterCommand();
+      unregisterCommand2();
       document.removeEventListener("blur", loseFocusListener);
     };
   }, [offsetLeft, offsetTop, editor]);
