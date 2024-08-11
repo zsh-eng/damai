@@ -34,6 +34,26 @@ function checkIsNewLineWrap(rects: DOMRectList) {
 }
 
 /**
+ * Scrolls the selection into view.
+ */
+export function scrollSelectionIntoView() {
+  const selection = window.getSelection();
+  if (!selection) {
+    return;
+  }
+
+  const selectionElement = getElementFromSelection(selection);
+  if (!selectionElement) {
+    return;
+  }
+
+  selectionElement.scrollIntoView({
+    block: "nearest",
+    behavior: "instant",
+  });
+}
+
+/**
  * Returns the bounding client rect of the given range.
  *
  * Handles 2 special cases:

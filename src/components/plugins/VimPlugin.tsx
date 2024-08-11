@@ -3,6 +3,7 @@ import {
   getElementFromSelection,
   getRangeBoundingClientRect,
   isElementInViewport,
+  scrollSelectionIntoView,
 } from "@/lib/lexical/utils";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $moveCharacter } from "@lexical/selection";
@@ -11,12 +12,13 @@ import {
   $getSelection,
   $isRangeSelection,
   CLICK_COMMAND,
-  COMMAND_PRIORITY_HIGH,
+  COMMAND_PRIORITY_NORMAL,
   createCommand,
   KEY_DOWN_COMMAND,
+  LexicalCommand,
   LexicalEditor,
 } from "lexical";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export type VimMode = "command" | "edit";
 
@@ -161,82 +163,164 @@ function moveCaretVertically(
   } while (retriesRemaining > 0);
 }
 
-export const VIM_MODE_CHANGE_COMMAND = createCommand<VimMode>();
+export const LVIM_MODE_CHANGE_COMMAND = createCommand<VimMode>();
 export const DEFAULT_VIM_MODE = "command";
+
+const LVIM_MOVE_HORIZONTAL_COMMAND = createCommand<"forward" | "backward">();
+const LVIM_MOVE_VERTICAL_COMMAND = createCommand<"up" | "down">();
+const LVIM_DELETE_CHARCTER_COMMAND = createCommand<"forward" | "backward">();
+const LVIM_DELETE_WORD_COMMAND = createCommand<"forward" | "backward">();
+const LVIM_DELETE_LINE_COMMAND = createCommand<undefined>();
+
+type VimCommand<T> =
+  T extends LexicalCommand<infer TPayload>
+    ? {
+        name: string;
+        lexicalCommand: LexicalCommand<TPayload>;
+        payload: TPayload;
+        pattern: string;
+      }
+    : never;
+
+const VIM_MOVE_FORWARD_COMMAND: VimCommand<
+  typeof LVIM_MOVE_HORIZONTAL_COMMAND
+> = {
+  name: "move-forward",
+  lexicalCommand: LVIM_MOVE_HORIZONTAL_COMMAND,
+  payload: "forward",
+  pattern: "l",
+};
+
+const VIM_MOVE_BACKWARD_COMMAND: VimCommand<
+  typeof LVIM_MOVE_HORIZONTAL_COMMAND
+> = {
+  name: "move-backward",
+  lexicalCommand: LVIM_MOVE_HORIZONTAL_COMMAND,
+  payload: "backward",
+  pattern: "h",
+};
+
+const VIM_MOVE_UP_COMMAND: VimCommand<typeof LVIM_MOVE_VERTICAL_COMMAND> = {
+  name: "move-up",
+  lexicalCommand: LVIM_MOVE_VERTICAL_COMMAND,
+  payload: "up",
+  pattern: "k",
+};
+
+const VIM_MOVE_DOWN_COMMAND: VimCommand<typeof LVIM_MOVE_VERTICAL_COMMAND> = {
+  name: "move-down",
+  lexicalCommand: LVIM_MOVE_VERTICAL_COMMAND,
+  payload: "down",
+  pattern: "j",
+};
+
+const VIM_SET_EDIT_MODE_COMMAND: VimCommand<typeof LVIM_MODE_CHANGE_COMMAND> = {
+  name: "set-edit-mode",
+  lexicalCommand: LVIM_MODE_CHANGE_COMMAND,
+  payload: "edit",
+  pattern: "i",
+};
+
+const VIM_DELETE_CHARACTER_COMMAND: VimCommand<
+  typeof LVIM_DELETE_CHARCTER_COMMAND
+> = {
+  name: "delete-character",
+  lexicalCommand: LVIM_DELETE_CHARCTER_COMMAND,
+  payload: "forward",
+  pattern: "x",
+};
+
+const VIM_DELETE_WORD_COMMAND: VimCommand<typeof LVIM_DELETE_WORD_COMMAND> = {
+  name: "delete-word",
+  lexicalCommand: LVIM_DELETE_WORD_COMMAND,
+  payload: "forward",
+  pattern: "dw",
+};
+
+const VIM_DELETE_LINE_COMMAND: VimCommand<typeof LVIM_DELETE_LINE_COMMAND> = {
+  name: "delete-line",
+  lexicalCommand: LVIM_DELETE_LINE_COMMAND,
+  payload: undefined,
+  pattern: "dd",
+};
+
+const ALL_VIM_COMMANDS: Array<VimCommand<LexicalCommand<unknown>>> = [
+  VIM_MOVE_FORWARD_COMMAND,
+  VIM_MOVE_BACKWARD_COMMAND,
+  VIM_MOVE_UP_COMMAND,
+  VIM_MOVE_DOWN_COMMAND,
+  VIM_SET_EDIT_MODE_COMMAND,
+  VIM_DELETE_CHARACTER_COMMAND,
+  VIM_DELETE_WORD_COMMAND,
+  VIM_DELETE_LINE_COMMAND,
+];
 
 /**
  * Represents the Vim state of the editor.
  */
 class Vim {
   /** The coordinates of caret's offset.  */
-  private horizontal: number | undefined;
+  horizontal: number | undefined;
   /** The current mode of the Vim editor */
   private mode: VimMode = DEFAULT_VIM_MODE;
+  private keystrokes: string[] = [];
 
   constructor() {}
-  updateMode(mode: VimMode, editor: LexicalEditor) {
+
+  private resetKeystrokes() {
+    this.keystrokes.length = 0;
+  }
+
+  private matchCommand(): VimCommand<LexicalCommand<unknown>> | undefined {
+    const pattern = this.keystrokes.join("");
+    return ALL_VIM_COMMANDS.find((command) => command.pattern === pattern);
+  }
+
+  private isPossibleCommand(): boolean {
+    const pattern = this.keystrokes.join("");
+    return ALL_VIM_COMMANDS.some((command) =>
+      command.pattern.startsWith(pattern),
+    );
+  }
+
+  updateMode(mode: VimMode) {
     this.mode = mode;
-    editor.dispatchCommand(VIM_MODE_CHANGE_COMMAND, mode);
   }
 
   $handleKeydownListener(event: KeyboardEvent, editor: LexicalEditor) {
-    switch (this.mode) {
-      case "edit":
-        if (event.key === "[" && event.ctrlKey) {
-          this.updateMode("command", editor);
-          return true;
-        }
-        break;
-      case "command":
-        if (event.ctrlKey || event.metaKey || event.altKey) {
-          return false;
-        }
-
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) {
-          return false;
-        }
-
-        // Reference: @lexical/plain-text
-        // Each of these should be extracted to custom commands to handle operator motions
-        if (event.key === "i" && !event.shiftKey) {
-          this.updateMode("edit", editor);
-        }
-        if (event.key === "j") {
-          const h = moveCaretVertically("down", this.horizontal);
-          this.horizontal = h;
-        }
-        if (event.key === "k") {
-          const h = moveCaretVertically("up", this.horizontal);
-          this.horizontal = h;
-        }
-        if (event.key === "h") {
-          $moveCharacter(selection, false, true);
-          this.horizontal = undefined;
-        }
-        if (event.key === "l") {
-          $moveCharacter(selection, false, false);
-          this.horizontal = undefined;
-        }
-
-        const isMovement = ["j", "k", "h", "l"].includes(event.key);
-        if (isMovement) {
-          const selection = window.getSelection();
-          if (selection) {
-            const selectionElement = getElementFromSelection(selection);
-            selectionElement?.scrollIntoView({
-              block: "nearest",
-              behavior: "instant",
-            });
-          }
-        }
-
+    if (this.mode === "edit") {
+      if (event.ctrlKey && event.key === "[") {
+        editor.dispatchCommand(LVIM_MODE_CHANGE_COMMAND, "command");
+        this.resetKeystrokes();
         event.preventDefault();
-        return true;
+      }
+      return false;
     }
 
-    this.horizontal = undefined;
-    return false;
+    if (event.key === "Escape") {
+      this.resetKeystrokes();
+      return false;
+    }
+
+    // For now, we ignore if the user is holding down a modifier key
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return false;
+    }
+
+    event.preventDefault();
+    this.keystrokes.push(event.key);
+
+    const command = this.matchCommand();
+    if (!command) {
+      if (!this.isPossibleCommand()) {
+        this.resetKeystrokes();
+      }
+      return false;
+    }
+
+    editor.dispatchCommand(command.lexicalCommand, command.payload);
+    this.resetKeystrokes();
+    return true;
   }
 }
 
@@ -250,11 +334,10 @@ const vim = new Vim();
  */
 export default function VimPlugin() {
   const [editor] = useLexicalComposerContext();
-  const [horizontal, setHorizontal] = useState<number | undefined>(undefined);
 
   // Send the current command when we first render
   useEffect(() => {
-    editor.dispatchCommand(VIM_MODE_CHANGE_COMMAND, DEFAULT_VIM_MODE);
+    editor.dispatchCommand(LVIM_MODE_CHANGE_COMMAND, DEFAULT_VIM_MODE);
   }, [editor]);
 
   useEffect(() => {
@@ -262,18 +345,110 @@ export default function VimPlugin() {
       editor.registerCommand(
         KEY_DOWN_COMMAND,
         vim.$handleKeydownListener.bind(vim),
-        COMMAND_PRIORITY_HIGH,
+        COMMAND_PRIORITY_NORMAL,
       ),
       editor.registerCommand(
         CLICK_COMMAND,
         () => {
-          setHorizontal(undefined);
+          vim.horizontal = undefined;
           return false;
         },
-        COMMAND_PRIORITY_HIGH,
+        COMMAND_PRIORITY_NORMAL,
+      ),
+      editor.registerCommand(
+        LVIM_MOVE_HORIZONTAL_COMMAND,
+        (direction: "forward" | "backward") => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) {
+            return false;
+          }
+
+          $moveCharacter(selection, false, direction === "backward");
+          vim.horizontal = undefined;
+
+          scrollSelectionIntoView();
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+      editor.registerCommand(
+        LVIM_MOVE_VERTICAL_COMMAND,
+        (direction: "up" | "down") => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) {
+            return false;
+          }
+
+          const h = moveCaretVertically(direction, vim.horizontal);
+          vim.horizontal = h;
+
+          scrollSelectionIntoView();
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+      editor.registerCommand(
+        LVIM_MODE_CHANGE_COMMAND,
+        (mode: VimMode) => {
+          vim.updateMode(mode);
+          vim.horizontal = undefined;
+          return false;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+      editor.registerCommand(
+        LVIM_DELETE_CHARCTER_COMMAND,
+        (direction: "forward" | "backward") => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) {
+            return false;
+          }
+
+          selection.deleteCharacter(direction === "backward");
+          vim.horizontal = undefined;
+
+          scrollSelectionIntoView();
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+
+      editor.registerCommand(
+        LVIM_DELETE_WORD_COMMAND,
+        (direction: "forward" | "backward") => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) {
+            return false;
+          }
+
+          selection.deleteWord(direction === "backward");
+          vim.horizontal = undefined;
+
+          scrollSelectionIntoView();
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+
+      editor.registerCommand(
+        LVIM_DELETE_LINE_COMMAND,
+        () => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) {
+            return false;
+          }
+
+          selection.deleteLine(true);
+          selection.deleteLine(false);
+          vim.horizontal = undefined;
+
+          scrollSelectionIntoView();
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
       ),
     );
-  }, [editor, horizontal]);
+  }, [editor, vim]);
 
   return null;
 }
