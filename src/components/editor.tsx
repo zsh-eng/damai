@@ -4,8 +4,10 @@ import {
   registerDamaiCommandListener,
 } from "@/commands/index.ts";
 import CustomCursorPlugin from "@/components/plugins/CustomCursorPlugin.tsx";
+import VimPlugin from "@/components/plugins/VimPlugin.tsx";
 import useDamaiCommandShortcut from "@/components/use-shortcut.tsx";
 import { type File } from "@/hooks/use-file.ts";
+import { cn } from "@/lib/utils.ts";
 import { CodeNode } from "@lexical/code";
 import { LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -200,7 +202,32 @@ export default function Editor({
           />
           <HistoryPlugin />
           <AutoFocusPlugin />
-          <CustomCursorPlugin offset={combinedOffset} />
+          <VimPlugin offset={combinedOffset} />
+          <CustomCursorPlugin
+            render={({ top, left, height, width }) => {
+              const relativeTop = top - (combinedOffset?.top ?? 0);
+              const relativeLeft = left - (combinedOffset?.left ?? 0);
+              const DEFAULT_WIDTH = 3;
+              return (
+                <div
+                  style={{
+                    translate: `${relativeLeft}px ${relativeTop}px`,
+                    height: `${height}px`,
+                    width: `${DEFAULT_WIDTH}px`,
+                  }}
+                  // `ease-in` looks jittery when the user is typing
+                  // `ease-out` looks smoother
+                  className={cn(
+                    "pointer-events-none absolute left-0 top-0 z-20 transition-all ease-out will-change-transform",
+                    "duration-75",
+                    "rounded-xl bg-primary/70",
+                    // mode === "edit" && "rounded-xl",
+                    // mode === "edit" ? "bg-primary/70" : "bg-primary/50",
+                  )}
+                />
+              );
+            }}
+          />
           {/* <TreeViewPlugin /> */}
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <OnChangePlugin
