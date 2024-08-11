@@ -17,6 +17,8 @@ import {
   KEY_DOWN_COMMAND,
   LexicalCommand,
   LexicalEditor,
+  REDO_COMMAND,
+  UNDO_COMMAND,
 } from "lexical";
 import { useEffect } from "react";
 
@@ -244,6 +246,13 @@ const VIM_DELETE_LINE_COMMAND: VimCommand<typeof LVIM_DELETE_LINE_COMMAND> = {
   pattern: "dd",
 };
 
+const VIM_UNDO_COMMAND: VimCommand<typeof UNDO_COMMAND> = {
+  name: "undo",
+  lexicalCommand: UNDO_COMMAND,
+  payload: undefined,
+  pattern: "u",
+};
+
 const ALL_VIM_COMMANDS: Array<VimCommand<LexicalCommand<unknown>>> = [
   VIM_MOVE_FORWARD_COMMAND,
   VIM_MOVE_BACKWARD_COMMAND,
@@ -253,6 +262,7 @@ const ALL_VIM_COMMANDS: Array<VimCommand<LexicalCommand<unknown>>> = [
   VIM_DELETE_CHARACTER_COMMAND,
   VIM_DELETE_WORD_COMMAND,
   VIM_DELETE_LINE_COMMAND,
+  VIM_UNDO_COMMAND,
 ];
 
 /**
@@ -298,6 +308,12 @@ class Vim {
     }
 
     if (event.key === "Escape") {
+      this.resetKeystrokes();
+      return false;
+    }
+
+    if (event.key === "r" && event.ctrlKey) {
+      editor.dispatchCommand(REDO_COMMAND, undefined);
       this.resetKeystrokes();
       return false;
     }
