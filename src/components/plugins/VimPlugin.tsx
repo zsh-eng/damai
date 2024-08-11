@@ -6,15 +6,15 @@ import {
 } from "@/lib/lexical/utils";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $moveCharacter } from "@lexical/selection";
+import { mergeRegister } from "@lexical/utils";
 import {
   $getSelection,
   $isRangeSelection,
   CLICK_COMMAND,
   COMMAND_PRIORITY_HIGH,
-  CommandListener,
-  CommandPayloadType,
   createCommand,
   KEY_DOWN_COMMAND,
+  LexicalEditor,
 } from "lexical";
 import { useEffect, useState } from "react";
 
@@ -161,11 +161,8 @@ function moveCaretVertically(
   } while (retriesRemaining > 0);
 }
 
-// TODO the vim state should sync with the lexcial react state
-// such that we can update the cursor to the block cursor accordingly
-// The way we do that is to dispatch our custom commmands whenever the state is updated
-// and subscribe to the state changes to update React state automatically
-// Essentially the Vim instance should be the source of truth for the Vim state
+export const VIM_MODE_CHANGE_COMMAND = createCommand<VimMode>();
+export const DEFAULT_VIM_MODE = "command";
 
 /**
  * Represents the Vim state of the editor.
@@ -174,18 +171,19 @@ class Vim {
   /** The coordinates of caret's offset.  */
   private horizontal: number | undefined;
   /** The current mode of the Vim editor */
-  private mode: VimMode = "command";
+  private mode: VimMode = DEFAULT_VIM_MODE;
 
   constructor() {}
-  updateMode(mode: VimMode) {
+  updateMode(mode: VimMode, editor: LexicalEditor) {
     this.mode = mode;
+    editor.dispatchCommand(VIM_MODE_CHANGE_COMMAND, mode);
   }
 
-  $handleKeydownListener(event: KeyboardEvent) {
+  $handleKeydownListener(event: KeyboardEvent, editor: LexicalEditor) {
     switch (this.mode) {
       case "edit":
         if (event.key === "[" && event.ctrlKey) {
-          this.updateMode("command");
+          this.updateMode("command", editor);
           return true;
         }
         break;
@@ -202,7 +200,7 @@ class Vim {
         // Reference: @lexical/plain-text
         // Each of these should be extracted to custom commands to handle operator motions
         if (event.key === "i" && !event.shiftKey) {
-          this.updateMode("edit");
+          this.updateMode("edit", editor);
         }
         if (event.key === "j") {
           const h = moveCaretVertically("down", this.horizontal);
@@ -221,6 +219,18 @@ class Vim {
           this.horizontal = undefined;
         }
 
+        const isMovement = ["j", "k", "h", "l"].includes(event.key);
+        if (isMovement) {
+          const selection = window.getSelection();
+          if (selection) {
+            const selectionElement = getElementFromSelection(selection);
+            selectionElement?.scrollIntoView({
+              block: "nearest",
+              behavior: "instant",
+            });
+          }
+        }
+
         event.preventDefault();
         return true;
     }
@@ -232,9 +242,6 @@ class Vim {
 
 const vim = new Vim();
 
-export const VIM_MODE_CHANGE_COMMAND = createCommand<VimMode>();
-export const DEFAULT_VIM_MODE = "command";
-
 /**
  * A custom cursor plugin that shows a cursor at the current selection.
  *
@@ -243,7 +250,6 @@ export const DEFAULT_VIM_MODE = "command";
  */
 export default function VimPlugin() {
   const [editor] = useLexicalComposerContext();
-  const [mode, setMode] = useState<VimMode>(DEFAULT_VIM_MODE);
   const [horizontal, setHorizontal] = useState<number | undefined>(undefined);
 
   // Send the current command when we first render
@@ -252,93 +258,22 @@ export default function VimPlugin() {
   }, [editor]);
 
   useEffect(() => {
-    // LexicalEvents always dispatches the KEY_DOWN_COMMAND first.
-    // If the command is handled by a custom handler, then the subsequent commands
-    // aren't checked for.
-    const keydownListener: CommandListener<
-      CommandPayloadType<typeof KEY_DOWN_COMMAND>
-    > = (payload, editor) => {
-      switch (mode) {
-        case "edit":
-          if (payload.key === "[" && payload.ctrlKey) {
-            setMode("command");
-            editor.dispatchCommand(VIM_MODE_CHANGE_COMMAND, "command");
-            return true;
-          }
-          break;
-        case "command":
-          if (payload.ctrlKey || payload.metaKey || payload.altKey) {
-            return false;
-          }
-
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection)) {
-            return false;
-          }
-
-          // Reference: @lexical/plain-text
-          // Each of these should be extracted to custom commands to handle operator motions
-          if (payload.key === "i" && !payload.shiftKey) {
-            setMode("edit");
-            editor.dispatchCommand(VIM_MODE_CHANGE_COMMAND, "edit");
-          }
-
-          if (payload.key === "j") {
-            const h = moveCaretVertically("down", horizontal);
-            setHorizontal(h);
-          }
-          if (payload.key === "k") {
-            const h = moveCaretVertically("up", horizontal);
-            setHorizontal(h);
-          }
-          if (payload.key === "h") {
-            $moveCharacter(selection, false, true);
-            setHorizontal(undefined);
-          }
-          if (payload.key === "l") {
-            $moveCharacter(selection, false, false);
-            setHorizontal(undefined);
-          }
-
-          const isMovement = ["j", "k", "h", "l"].includes(payload.key);
-          if (isMovement) {
-            const selection = window.getSelection();
-            if (selection) {
-              const selectionElement = getElementFromSelection(selection);
-              selectionElement?.scrollIntoView({
-                block: "nearest",
-                behavior: "instant",
-              });
-            }
-          }
-
-          payload.preventDefault();
-          return true;
-      }
-
-      setHorizontal(undefined);
-      return false;
-    };
-
-    const cleanup = editor.registerCommand(
-      KEY_DOWN_COMMAND,
-      keydownListener,
-      COMMAND_PRIORITY_HIGH,
+    return mergeRegister(
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        vim.$handleKeydownListener.bind(vim),
+        COMMAND_PRIORITY_HIGH,
+      ),
+      editor.registerCommand(
+        CLICK_COMMAND,
+        () => {
+          setHorizontal(undefined);
+          return false;
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
     );
-    const cleanup2 = editor.registerCommand(
-      CLICK_COMMAND,
-      () => {
-        setHorizontal(undefined);
-        return false;
-      },
-      COMMAND_PRIORITY_HIGH,
-    );
-
-    return () => {
-      cleanup();
-      cleanup2();
-    };
-  }, [mode, editor, horizontal]);
+  }, [editor, horizontal]);
 
   return null;
 }
