@@ -3,7 +3,7 @@ import CustomCursorPlugin, {
 } from "@/components/plugins/CustomCursorPlugin";
 import {
   DEFAULT_VIM_MODE,
-  VIM_MODE_CHANGE_COMMAND,
+  LVIM_MODE_CHANGE_COMMAND,
   VimMode,
 } from "@/components/plugins/VimPlugin";
 import { cn } from "@/lib/utils";
@@ -22,10 +22,10 @@ export default function VimCursorPlugin({
 
   useEffect(() => {
     return editor.registerCommand(
-      VIM_MODE_CHANGE_COMMAND,
+      LVIM_MODE_CHANGE_COMMAND,
       (mode: VimMode) => {
         setVimMode(mode);
-        return true;
+        return false;
       },
       COMMAND_PRIORITY_LOW,
     );
