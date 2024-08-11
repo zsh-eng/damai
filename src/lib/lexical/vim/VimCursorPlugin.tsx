@@ -1,11 +1,8 @@
 import CustomCursorPlugin, {
   CustomCursorPluginProps,
 } from "@/components/plugins/CustomCursorPlugin";
-import {
-  DEFAULT_VIM_MODE,
-  LVIM_MODE_CHANGE_COMMAND,
-  VimMode,
-} from "@/components/plugins/VimPlugin";
+import { LVIM_MODE_CHANGE_COMMAND } from "@/lib/lexical/vim/command";
+import { DEFAULT_VIM_MODE, VimMode } from "@/lib/lexical/vim/state";
 import { cn } from "@/lib/utils";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { COMMAND_PRIORITY_LOW } from "lexical";

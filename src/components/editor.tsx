@@ -3,8 +3,8 @@ import {
   dispatchDamaiCommand,
   registerDamaiCommandListener,
 } from "@/commands/index.ts";
-import VimCursorPlugin from "@/components/plugins/VimCursorPlugin.tsx";
-import VimPlugin from "@/components/plugins/VimPlugin.tsx";
+import VimCursorPlugin from "@/lib/lexical/vim/VimCursorPlugin.tsx";
+import VimPlugin from "@/lib/lexical/vim/VimPlugin.tsx";
 import useDamaiCommandShortcut from "@/components/use-shortcut.tsx";
 import { type File } from "@/hooks/use-file.ts";
 import { CodeNode } from "@lexical/code";

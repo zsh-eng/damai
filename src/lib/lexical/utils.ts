@@ -126,3 +126,144 @@ export function getElementFromSelection(selection: Selection): Element | null {
   console.error("Unexpected node type", anchorNode.nodeType);
   return null;
 }
+
+/**
+ * Moves the caret vertically by a line.
+ *
+ * The previous horizontal position is used to keep the caret in the same column,
+ * similar to the native "arrow down / up" behaviour.
+ *
+ * @param direction the direction to move the caret
+ * @param horizontal the previous horizontal position of the caret, if any
+ * @returns the new horizontal position of the caret
+ */
+export function moveCaretVertically(
+  direction: "up" | "down",
+  horizontal?: number,
+): number | undefined {
+  const selection = window.getSelection();
+  if (!selection) {
+    return;
+  }
+
+  if (!document.caretRangeFromPoint) {
+    console.error("Caret range from point not supported");
+    return;
+  }
+
+  const range = selection.getRangeAt(0);
+  const isElementNode = selection.anchorNode?.nodeType === Node.ELEMENT_NODE;
+
+  const element = getElementFromSelection(selection);
+  if (!element) {
+    console.error("No element found for the selection");
+    return;
+  }
+
+  if (!isElementInViewport(element)) {
+    element.scrollIntoView({ block: "center" });
+  }
+
+  const rect = isElementNode
+    ? element.getBoundingClientRect()
+    : getRangeBoundingClientRect(range);
+
+  if (!rect) {
+    console.error("Bounding client rect not found");
+    return;
+  }
+
+  const multiplier = direction === "up" ? -1 : 1;
+  const updateRange = ():
+    | {
+        success: true;
+        newHorizontal: number;
+      }
+    | { success: false } => {
+    const rect = isElementNode
+      ? (selection.anchorNode as Element).getBoundingClientRect()
+      : getRangeBoundingClientRect(range);
+
+    if (!rect) {
+      return {
+        success: false,
+      };
+    }
+
+    const x = horizontal || (rect.left + rect.right) / 2;
+    const y = (rect.top + rect.bottom) / 2;
+
+    const SEARCH_LIMIT = 3;
+    for (let i = 0; i < SEARCH_LIMIT; i++) {
+      const dy = multiplier * (i + 1) * rect.height;
+      const goalRange = document.caretRangeFromPoint(x, y + dy);
+
+      if (!goalRange) {
+        continue;
+      }
+
+      const boundingRect = getRangeBoundingClientRect(goalRange);
+      if (!boundingRect) {
+        continue;
+      }
+
+      const EPSILON = 1;
+      const isNewLine = multiplier * (boundingRect.y - rect.y) > EPSILON;
+      if (!isNewLine) {
+        continue;
+      }
+
+      // Chrome puts selection between lines to the start of the new line
+      // We continue the search if we're currently between lines
+
+      const HORIZONTAL_EPSILON = 20;
+      const isSignificantChangeInHorizontal =
+        x - boundingRect.x > HORIZONTAL_EPSILON;
+      const isOffsetAtStartOfLine = goalRange.startOffset === 0;
+      const isNotEmptyLine = goalRange.startContainer?.nodeValue !== null;
+
+      const isIncorrectChromeCaretResult =
+        isSignificantChangeInHorizontal &&
+        isOffsetAtStartOfLine &&
+        isNotEmptyLine;
+      if (isIncorrectChromeCaretResult) {
+        continue;
+      }
+
+      // console.log(`Iteration ${i} found`, boundingRect);
+      selection.removeAllRanges();
+      selection.addRange(goalRange);
+
+      return {
+        success: true,
+        newHorizontal: x,
+      };
+    }
+    return {
+      success: false,
+    };
+  };
+
+  const res = updateRange();
+  if (res.success) {
+    return res.newHorizontal;
+  }
+
+  // retry with scroll
+  const scrollableParent = findScrollableParent(element);
+  let retriesRemaining = 3;
+  do {
+    console.log("Retrying", retriesRemaining);
+    const dy = multiplier * rect.height * 1;
+    scrollableParent.scrollBy({
+      top: dy,
+      behavior: "instant",
+    });
+
+    const res = updateRange();
+    if (res.success) {
+      return res.newHorizontal;
+    }
+    retriesRemaining--;
+  } while (retriesRemaining > 0);
+}
