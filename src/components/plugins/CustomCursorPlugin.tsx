@@ -62,6 +62,7 @@ export default function CustomCursorPlugin({
     const updateCursorPosition = () => {
       const selection = window.getSelection();
       if (!selection) {
+        setCursorPosition(null);
         return false;
       }
       // Test that the cursor is hidden when selecting multiple characters
@@ -141,8 +142,15 @@ export default function CustomCursorPlugin({
       1,
     );
 
+    const loseFocusListener = () => {
+      setCursorPosition(null);
+    };
+
+    document.addEventListener("focusout", loseFocusListener);
+
     return () => {
       unregisterCommand();
+      document.removeEventListener("blur", loseFocusListener);
     };
   }, [offsetLeft, offsetTop, editor]);
   // should hide the styling when the editor is not in focus
