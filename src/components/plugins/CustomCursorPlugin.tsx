@@ -26,12 +26,29 @@ type Cursor = {
   top: number;
 };
 
-type CustomCursorPluginProps = {
+export type CustomCursorPluginProps = {
   render: (cursor: Cursor) => React.ReactNode;
+  /**
+   * The relative top position of the cursor to the editor container.
+   *
+   * Set this prop with the offset of the editor container from the top of the viewport
+   * if the editor container has a position of relative or absolute.
+   */
+  offsetTop?: number;
+
+  /**
+   * The relative left position of the cursor to the editor container.
+   *
+   * Set this prop with the offset of the editor container from the left of the viewport
+   * if the editor container has a position of relative or absolute.
+   */
+  offsetLeft?: number;
 };
 
 export default function CustomCursorPlugin({
   render,
+  offsetTop,
+  offsetLeft,
 }: CustomCursorPluginProps) {
   const [cursorPosition, setCursorPosition] = useState<{
     top: number;
@@ -127,7 +144,7 @@ export default function CustomCursorPlugin({
     return () => {
       unregisterCommand();
     };
-  }, []);
+  }, [offsetLeft, offsetTop, editor]);
   // should hide the styling when the editor is not in focus
   // or is in read only mode
 
@@ -138,8 +155,8 @@ export default function CustomCursorPlugin({
         render({
           height,
           width,
-          left: cursorPosition.left,
-          top: cursorPosition.top,
+          left: cursorPosition.left - (offsetLeft || 0),
+          top: cursorPosition.top - (offsetTop || 0),
         })}
     </>
   );

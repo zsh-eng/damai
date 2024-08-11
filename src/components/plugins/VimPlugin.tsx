@@ -13,28 +13,12 @@ import {
   COMMAND_PRIORITY_HIGH,
   CommandListener,
   CommandPayloadType,
+  createCommand,
   KEY_DOWN_COMMAND,
 } from "lexical";
 import { useEffect, useState } from "react";
 
-type CustomCursorPluginProps = {
-  /**
-   * The offset of the editor container from the top and left of the viewport.
-   *
-   * Provide this field if the editor container is positioned `relative`.
-   *
-   * If the offset provided changes from "undefined" to a value, the cursor
-   * will be immedidately updated to the new position.
-   * This is useful for when the offset is initially set to `undefined` and
-   * is later set to a value.
-   */
-  offset?: {
-    top: number;
-    left: number;
-  };
-};
-
-type Mode = "command" | "edit";
+export type VimMode = "command" | "edit";
 
 /**
  * Moves the caret vertically by a line.
@@ -190,10 +174,10 @@ class Vim {
   /** The coordinates of caret's offset.  */
   private horizontal: number | undefined;
   /** The current mode of the Vim editor */
-  private mode: Mode = "command";
+  private mode: VimMode = "command";
 
   constructor() {}
-  updateMode(mode: Mode) {
+  updateMode(mode: VimMode) {
     this.mode = mode;
   }
 
@@ -248,43 +232,24 @@ class Vim {
 
 const vim = new Vim();
 
+export const VIM_MODE_CHANGE_COMMAND = createCommand<VimMode>();
+export const DEFAULT_VIM_MODE = "command";
+
 /**
  * A custom cursor plugin that shows a cursor at the current selection.
  *
  * The cursor is a vertical line that smoothly transitions to the next position.
  * @returns
  */
-export default function VimPlugin({ offset }: CustomCursorPluginProps) {
-  const [cursorPosition, setCursorPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
-  const [height, setHeight] = useState(24);
-  const [width, setWidth] = useState(3);
+export default function VimPlugin() {
   const [editor] = useLexicalComposerContext();
-  const [previousOffset, setPreviousOffset] = useState(offset);
-
-  const [mode, setMode] = useState<Mode>("command");
+  const [mode, setMode] = useState<VimMode>(DEFAULT_VIM_MODE);
   const [horizontal, setHorizontal] = useState<number | undefined>(undefined);
-  const cursorWidth = mode === "command" ? width : 3;
 
+  // Send the current command when we first render
   useEffect(() => {
-    setPreviousOffset(offset);
-  }, [offset]);
-
-  // Force the cursor to update when an offset is provided
-  useEffect(() => {
-    if (
-      previousOffset === undefined &&
-      offset !== undefined &&
-      cursorPosition
-    ) {
-      setCursorPosition({
-        top: cursorPosition.top - offset.top,
-        left: cursorPosition.left - offset.left,
-      });
-    }
-  }, [offset, previousOffset, cursorPosition]);
+    editor.dispatchCommand(VIM_MODE_CHANGE_COMMAND, DEFAULT_VIM_MODE);
+  }, [editor]);
 
   useEffect(() => {
     // LexicalEvents always dispatches the KEY_DOWN_COMMAND first.
@@ -292,11 +257,12 @@ export default function VimPlugin({ offset }: CustomCursorPluginProps) {
     // aren't checked for.
     const keydownListener: CommandListener<
       CommandPayloadType<typeof KEY_DOWN_COMMAND>
-    > = (payload) => {
+    > = (payload, editor) => {
       switch (mode) {
         case "edit":
           if (payload.key === "[" && payload.ctrlKey) {
             setMode("command");
+            editor.dispatchCommand(VIM_MODE_CHANGE_COMMAND, "command");
             return true;
           }
           break;
@@ -314,7 +280,9 @@ export default function VimPlugin({ offset }: CustomCursorPluginProps) {
           // Each of these should be extracted to custom commands to handle operator motions
           if (payload.key === "i" && !payload.shiftKey) {
             setMode("edit");
+            editor.dispatchCommand(VIM_MODE_CHANGE_COMMAND, "edit");
           }
+
           if (payload.key === "j") {
             const h = moveCaretVertically("down", horizontal);
             setHorizontal(h);
